@@ -1,33 +1,24 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Text;
 using System.Threading;
+using System.Linq;
 using PizzaBox.Storing;
+using PizzaBox.Storing.Repositories;
+using Microsoft.EntityFrameworkCore;
 
 namespace PizzaBox.Domain.Models
 {
     public class InitRunAssets
     {
-
-        static int trials = 3;
-        public User member = new User();    //delete when DB ready
-
-        //delete when DB ready (pretend this is the physical DB's USER table)
-        public User testSignin = new User();   
-        public InitRunAssets()
-        {
-            testSignin.username = "larry123";
-            testSignin.password = "1 L0ve";
-            testSignin.name = "Ma Jang";
-            testSignin.session = false;
-        }
+        private static int trials = 3;
+        private static DbOptions Database = new DbOptions();
+        private static pizzaboxContext DB = new pizzaboxContext(Database.options);
 
         /// <summary>
         /// - Displays loading animation
         /// </summary>
         /// <param name="symbol"></param>
         /// <param name="len"></param>
-        static void Loading(char symbol, int len)
+        private static void Loading(char symbol, int len)
         {
             for (int i = 0; i < len; i++)
             {
@@ -41,65 +32,96 @@ namespace PizzaBox.Domain.Models
         /// </summary>
         public void Info()
         {
-            Console.WriteLine("Info - Displays a list of available commands. This command is always available.");
+            Console.WriteLine("INFO");
+            Console.WriteLine("Info - Display a list of available commands. This command is always available.");
             Console.WriteLine("Login - Username and password entry.");
             Console.WriteLine("Sign Up - Create a new account.");
-            Console.WriteLine("Clear - Clears screen.");
+            Console.WriteLine("Clear - Clear screen.");
             Console.WriteLine("Exit - You'll be back.\n");
         }
 
         /// <summary>
         /// - Logs into user account
         /// </summary>
-        public void Login()
+        public User Login()
         {
-            string user = "";
-            string pass = "";
-
+            User Me = new User();
             trials = 3;
             do
             {
+                #region Username and Password Entry
                 Console.WriteLine("USER LOGIN");
                 Console.Write("Username: ");
-                user = Console.ReadLine();
+                Me.Username = Console.ReadLine();
                 Console.Write("Password: ");
-                pass = Console.ReadLine();
+                Me.Pass = Console.ReadLine();
                 Console.WriteLine();
+                #endregion
 
-                //Query user from USER Table in DB
-                if (user == testSignin.username && pass == testSignin.password)
+                if (DB.User.Any(u => u.Username == Me.Username) && DB.User.Any(p => p.Pass == Me.Pass))
                 {
-                    Console.WriteLine("Login successful");
-                    testSignin.session = true;
-                    break;
+                    #region unnecessary loading commented out
+                    /*
+                    for (int i = 0; i < 3; i++)
+                    {
+                        Loading('.', 3);
+                        Console.Write("\r     \r");
+                    }
+                    */
+                    #endregion
+
+                    var result = from u in DB.User where u.Username == Me.Username select u;
+                    Me.FullName = result.Single().FullName;
+                    Me.SessionLive = result.Single().SessionLive;
+
+                    bool success = false;
+                    switch (Me.SessionLive)
+                    {
+                        case 1:
+                        //Bug in reading Me.SessionLive (database updated appropriately, not being transferred)
+                        /*
+                        Error("Session");
+                        break;
+                        */
+                        case 0:
+                            Console.WriteLine("Login successful\n");
+                            result.Single().SessionLive = 1;
+                            Me.SessionLive = 1;
+                            DB.SaveChanges();
+                            success = true;
+                            break;
+                    }
+
+                    if (success)
+                        break;
                 }
                 else
                     Error("Authentication");
 
-            } while (!testSignin.session);
+            } while (trials > 0);
+
+            return Me;
         }
 
         /// <summary>
         /// - Creates a new user account
         /// </summary>
-        public void Signup()
+        public User Signup()
         {
-            //Temporary USER table
-            //set USER class fields
-            member.username = "";
-            member.password = "";
-            member.name = "";
-            member.session = false;
-
-            string answer;
+            //Temporary USER object to be saved to Database
+            User newUser = new User();
+            newUser.Username = "";
+            newUser.Pass = "";
+            newUser.FullName = "";
+            newUser.SessionLive = 0;
 
             //Title
-            Console.WriteLine("___________________________________________________");
             Console.WriteLine("SIGN UP");
             Console.WriteLine("You're one step away from being a Pizza Box member!");
             Console.WriteLine("___________________________________________________");
-           
+
             //Account Type:
+            string answer;
             trials = 3;
             do
             {
@@ -108,12 +130,12 @@ namespace PizzaBox.Domain.Models
 
                 if (answer.ToLower() == "employee")
                 {
-                    member.username = "admin";
+                    newUser.Username = "admin";
                     break;
                 }
                 else if (answer.ToLower() == "customer")
                     break;
-               
+
                 Error("Entry");
 
             } while (answer.ToLower() != "employee" && answer.ToLower() != "customer");
@@ -123,46 +145,54 @@ namespace PizzaBox.Domain.Models
             do
             {
                 Console.Write("Username: ");
-                switch (member.username)
+                switch (newUser.Username)
                 {
                     case "admin":
                         Console.WriteLine("admin");
                         break;
 
                     default:
-                        member.username = Console.ReadLine();
-                        if (member.username.ToLower() == "admin")
-                            member.username = "";
-                        break; 
+                        newUser.Username = Console.ReadLine();
+                        if (newUser.Username.ToLower() == "admin")
+                            newUser.Username = "";
+                        break;
                 }
 
-                if (member.username.Length == 0)
+                if (newUser.Username.Length == 0)
                     Error("User");
                 else
                     break;
-                             
-            } while (member.username.Length == 0);
-            
+
+            } while (newUser.Username.Length == 0);
+
             //Password:
             Console.Write("Password: ");
-            member.password = Console.ReadLine();
+            newUser.Pass = Console.ReadLine();
 
             //Name:
             Console.Write("Full Name: ");
-            member.name = Console.ReadLine();
+            newUser.FullName = Console.ReadLine();
 
-            //Loading account...
-            Console.WriteLine("\nGetting your account ready");
+            //Creating account...
+            Console.Write("\nGetting your account ready ");
+            #region loading animation
+
             for (int i = 0; i < 3; i++)
             {
                 Loading('.', 3);
-                Console.Write("\r     \r");
+                Console.SetCursorPosition(Console.CursorLeft - 6, Console.CursorTop);
+                Console.Write("      ");
+                Console.SetCursorPosition(Console.CursorLeft - 6, Console.CursorTop);
             }
             Console.WriteLine();
 
-            //Start Session with user info
-            member.session = true;
-            //Save User to USER Table in DB
+            #endregion
+
+            newUser.SessionLive = 1;
+            DB.Add(newUser);
+            DB.SaveChanges();
+
+            return newUser;
         }
 
         /// <summary>
@@ -186,7 +216,7 @@ namespace PizzaBox.Domain.Models
             switch (trials)
             {
                 case 1:
-                    Console.WriteLine("Sorry, having trouble understanding you.\nYou can always contact us directly at 7499274992 (PIZZAPIZZA).\n");
+                    Console.WriteLine("Sorry, we tend to think inside the box.\nYou can always contact us directly at 7499274992 (PIZZAPIZZA).\n");
                     Exit();
                     break;
 
@@ -204,9 +234,9 @@ namespace PizzaBox.Domain.Models
         /// - Decrements trials counter
         /// </summary>
         /// <param name="typerr"></param>
-        void Error(string typerr)
+        private void Error(string typerr)
         {
-            switch(trials)
+            switch (trials)
             {
                 case 1:
                     Console.WriteLine("Give us a call at 7499274992 and we'll be happy to assist you.\n");
@@ -214,7 +244,7 @@ namespace PizzaBox.Domain.Models
                     break;
 
                 default:
-                    switch(typerr.ToLower())
+                    switch (typerr.ToLower())
                     {
                         case "user":
                             Console.WriteLine("You do not have access to this username. Try again.\n");
@@ -226,6 +256,10 @@ namespace PizzaBox.Domain.Models
 
                         case "authentication":
                             Console.WriteLine("Username/Password Incorrect. Try again.\n");
+                            break;
+
+                        case "session":
+                            Console.WriteLine("User is already signed in. Try again.\n");
                             break;
                     }
                     break;

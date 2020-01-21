@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace PizzaBox.Domain
+namespace PizzaBox.Storing
 {
     public class Class1
     {

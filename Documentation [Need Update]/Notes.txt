@@ -1,0 +1,6 @@
+Config File, ConfigBuilder, OptionsBuilder
+https://github.com/200106-UTA-PRS-NET/training-code/blob/master/02Sql/EF%20Core%20Steps.md
+
+Scaffolding
+https://unaura.com/c-use-the-entity-framework-core-with-mysql/
+
