@@ -7,7 +7,7 @@ namespace PizzaBox.Storing.Repositories
     {
         public User()
         {
-            Ordi = new HashSet<Ordi>();
+            Orders = new HashSet<Orders>();
         }
 
         public string Username { get; set; }
@@ -15,6 +15,6 @@ namespace PizzaBox.Storing.Repositories
         public string FullName { get; set; }
         public sbyte SessionLive { get; set; }
 
-        public virtual ICollection<Ordi> Ordi { get; set; }
+        public virtual ICollection<Orders> Orders { get; set; }
     }
 }

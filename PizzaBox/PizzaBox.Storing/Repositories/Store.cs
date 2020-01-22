@@ -7,7 +7,7 @@ namespace PizzaBox.Storing.Repositories
     {
         public Store()
         {
-            Ordi = new HashSet<Ordi>();
+            Orders = new HashSet<Orders>();
         }
 
         public int StoreId { get; set; }
@@ -16,6 +16,6 @@ namespace PizzaBox.Storing.Repositories
         public string Zip { get; set; }
 
         public virtual Inventory Inventory { get; set; }
-        public virtual ICollection<Ordi> Ordi { get; set; }
+        public virtual ICollection<Orders> Orders { get; set; }
     }
 }

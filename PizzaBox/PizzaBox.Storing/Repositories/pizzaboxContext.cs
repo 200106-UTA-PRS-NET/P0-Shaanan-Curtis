@@ -16,7 +16,8 @@ namespace PizzaBox.Storing.Repositories
         }
 
         public virtual DbSet<Inventory> Inventory { get; set; }
-        public virtual DbSet<Ordi> Ordi { get; set; }
+        public virtual DbSet<Orders> Orders { get; set; }
+        public virtual DbSet<Ordertype> Ordertype { get; set; }
         public virtual DbSet<Store> Store { get; set; }
         public virtual DbSet<User> User { get; set; }
 
@@ -24,8 +25,7 @@ namespace PizzaBox.Storing.Repositories
         {
             if (!optionsBuilder.IsConfigured)
             {
-#warning To protect potentially sensitive information in your connection string, you should move it out of source code. See http://go.microsoft.com/fwlink/?LinkId=723263 for guidance on storing connection strings.
-                optionsBuilder.UseMySql("server=localhost;port=3306;user=root;password=0Shaan;database=pizzabox", x => x.ServerVersion("5.5.62-mysql"));
+
             }
         }
 
@@ -56,72 +56,90 @@ namespace PizzaBox.Storing.Repositories
                     .HasConstraintName("INV_STORE_FK");
             });
 
-            modelBuilder.Entity<Ordi>(entity =>
+            modelBuilder.Entity<Orders>(entity =>
             {
                 entity.HasKey(e => e.OrderId)
                     .HasName("PRIMARY");
 
-                entity.ToTable("ordi");
+                entity.ToTable("orders");
 
                 entity.HasIndex(e => e.OrderId)
                     .HasName("OrderID")
                     .IsUnique();
 
                 entity.HasIndex(e => e.StoreId)
-                    .HasName("ORDI_STORE_FK");
+                    .HasName("ORDERS_U");
 
-                entity.HasIndex(e => e.User)
-                    .HasName("ORDI_USER_FK");
+                entity.HasIndex(e => e.Username)
+                    .HasName("ORDERS_S");
 
                 entity.Property(e => e.OrderId)
                     .HasColumnName("OrderID")
-                    .HasColumnType("bigint(20)");
-
-                entity.Property(e => e.Custom)
-                    .HasCharSet("latin1")
-                    .HasCollation("latin1_swedish_ci");
-
-                entity.Property(e => e.Od)
-                    .IsRequired()
-                    .HasColumnName("OD")
-                    .HasColumnType("varchar(255)")
-                    .HasCharSet("latin1")
-                    .HasCollation("latin1_swedish_ci");
-
-                entity.Property(e => e.Ot)
-                    .IsRequired()
-                    .HasColumnName("OT")
-                    .HasColumnType("varchar(255)")
-                    .HasCharSet("latin1")
-                    .HasCollation("latin1_swedish_ci");
-
-                entity.Property(e => e.Pizzas).HasColumnType("mediumint(9)");
-
-                entity.Property(e => e.Preset)
-                    .HasCharSet("latin1")
-                    .HasCollation("latin1_swedish_ci");
+                    .HasColumnType("mediumint(9)");
 
                 entity.Property(e => e.StoreId)
                     .HasColumnName("StoreID")
                     .HasColumnType("mediumint(9)");
 
-                entity.Property(e => e.User)
+                entity.Property(e => e.Username)
                     .IsRequired()
                     .HasColumnType("char(30)")
                     .HasCharSet("latin1")
                     .HasCollation("latin1_swedish_ci");
 
                 entity.HasOne(d => d.Store)
-                    .WithMany(p => p.Ordi)
+                    .WithMany(p => p.Orders)
                     .HasForeignKey(d => d.StoreId)
                     .OnDelete(DeleteBehavior.ClientSetNull)
-                    .HasConstraintName("ORDI_STORE_FK");
+                    .HasConstraintName("ORDERS_U");
 
-                entity.HasOne(d => d.UserNavigation)
-                    .WithMany(p => p.Ordi)
-                    .HasForeignKey(d => d.User)
+                entity.HasOne(d => d.UsernameNavigation)
+                    .WithMany(p => p.Orders)
+                    .HasForeignKey(d => d.Username)
                     .OnDelete(DeleteBehavior.ClientSetNull)
-                    .HasConstraintName("ORDI_USER_FK");
+                    .HasConstraintName("ORDERS_S");
+            });
+
+            modelBuilder.Entity<Ordertype>(entity =>
+            {
+                entity.HasKey(e => e.OrderId)
+                    .HasName("PRIMARY");
+
+                entity.ToTable("ordertype");
+
+                entity.Property(e => e.OrderId)
+                    .HasColumnName("OrderID")
+                    .HasColumnType("mediumint(9)");
+
+                entity.Property(e => e.Custom)
+                    .IsRequired()
+                    .HasColumnType("char(50)")
+                    .HasCharSet("latin1")
+                    .HasCollation("latin1_swedish_ci");
+
+                entity.Property(e => e.Dt)
+                    .IsRequired()
+                    .HasColumnType("varchar(50)")
+                    .HasCharSet("latin1")
+                    .HasCollation("latin1_swedish_ci");
+
+                entity.Property(e => e.Preset)
+                    .IsRequired()
+                    .HasColumnType("char(50)")
+                    .HasCharSet("latin1")
+                    .HasCollation("latin1_swedish_ci");
+
+                entity.Property(e => e.Tm)
+                    .IsRequired()
+                    .HasColumnType("varchar(50)")
+                    .HasCharSet("latin1")
+                    .HasCollation("latin1_swedish_ci");
+
+                entity.HasOne(d => d.Order)
+                    .WithOne(p => p.Ordertype)
+                    .HasForeignKey<Ordertype>(d => d.OrderId)
+                    .OnDelete(DeleteBehavior.ClientSetNull)
+                    .HasConstraintName("OT_O_FK");
             });
 
             modelBuilder.Entity<Store>(entity =>

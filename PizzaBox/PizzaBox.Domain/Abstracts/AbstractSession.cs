@@ -147,15 +147,84 @@ namespace PizzaBox.Domain.Abstracts
         {
             Console.WriteLine("RECENT ORDERS");
             IDictionary<string, int> Map = new Dictionary<string, int>();
+            var result = from o in DB.Orders
+                         join ot in DB.Ordertype
+                         on o.OrderId equals ot.OrderId
+                         where o.Username == Me.Username
+                         select new
+                         {
+                             ID = ot.OrderId,
+                             PRESET = ot.Preset,
+                             CUSTOM = ot.Custom,
+                             DATE = ot.Dt,
+                             TIME = ot.Tm
+                         };
 
-            var results = from s in DB.Ordi select s;
+            foreach(var val in result)
+            {
+                Console.WriteLine("Order #" + val.ID.ToString().PadLeft(12 - val.ID.ToString().Length, '0'));
+                int i = 0, n = 0;
+                string nums, sequence;
+                //TRANSLATE PRESETS
+                do
+                {
+                    //reset for next pizza under presets
+                    nums = "";
+                    sequence = "";
+
+                    // Worst O(3)
+                    while (i < val.PRESET.Length && Char.IsDigit(val.PRESET[i]))
+                    {
+                        nums += val.PRESET[i];
+                        i++;
+                    }
+
+                    n = Convert.ToInt32(nums);
+                    // Worst O(2)
+                    while (i < val.PRESET.Length && Char.IsLetter(val.PRESET[i]))
+                    {
+                        switch (val.PRESET[i])
+                        {
+                            case 'S':
+                                sequence += "Small Preset, ";
+                                break;
+
+                            case 'M':
+                                sequence += "Medium Preset, ";
+                                break;
+
+                            case 'L':
+                                sequence += "Large Preset, ";
+                                break;
+
+                            case 'k':
+                                sequence += "thick crust pizza";
+                                if (n > 1)
+                                    sequence += "s";
+                                break;
+
+                            case 'n':
+                                sequence += "thin crust pizza";
+                                if (n > 1)
+                                    sequence += "s";
+                                break;
+                        }
+
+                        i++;
+                    }
+
+                    Console.WriteLine(Convert.ToInt32(nums) + " " + sequence);
+
+                } while (i < val.PRESET.Length);
+               
+                //Console.WriteLine(val.PRESET + "\t" + val.CUSTOM + "\t" + val.DATE + "\t" + val.TIME);
+            }
+       
+            /*
             string nums, sequence;
             int n;
             int i;
-            foreach (Ordi s in results)
-            {
-                Console.WriteLine("o");
-            }
+            */
             /*
             foreach(Orders o in results)
             {
