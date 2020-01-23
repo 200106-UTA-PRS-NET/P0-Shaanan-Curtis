@@ -6,7 +6,7 @@ using Microsoft.Extensions.Configuration;
 
 namespace PizzaBox.Domain
 {
-    public class DbOptions
+    public sealed class DbOptions
     {
         public readonly DbContextOptions<pizzaboxContext> options;
 
