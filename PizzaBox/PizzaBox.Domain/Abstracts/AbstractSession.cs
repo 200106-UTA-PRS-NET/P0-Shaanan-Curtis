@@ -163,6 +163,10 @@ namespace PizzaBox.Domain.Abstracts
             foreach(var val in result)
             {
                 Console.WriteLine("Order #" + val.ID.ToString().PadLeft(12 - val.ID.ToString().Length, '0'));
+                string D = val.DATE.Replace('.', '/');
+                string T = val.TIME.Replace('.', ':');
+                Console.WriteLine(D + " " + T);
+
                 int i = 0, n = 0;
                 string nums, sequence;
                 //TRANSLATE PRESETS
@@ -216,138 +220,62 @@ namespace PizzaBox.Domain.Abstracts
                     Console.WriteLine(Convert.ToInt32(nums) + " " + sequence);
 
                 } while (i < val.PRESET.Length);
-               
-                //Console.WriteLine(val.PRESET + "\t" + val.CUSTOM + "\t" + val.DATE + "\t" + val.TIME);
-            }
-       
-            /*
-            string nums, sequence;
-            int n;
-            int i;
-            */
-            /*
-            foreach(Orders o in results)
-            {
-                Console.WriteLine();
-                
-                if(o.Preset[0] != '-')
+
+                i = 0; n = 0;
+                //TRANSLATE PRESETS
+                do
                 {
-                    i = 0;
-                    do
+                    //reset for next pizza under presets
+                    nums = "";
+                    sequence = "";
+
+                    // Worst O(3)
+                    while (i < val.CUSTOM.Length && Char.IsDigit(val.CUSTOM[i]))
                     {
-                        nums = "";
-                        n = 0;
-                        sequence = "";
+                        nums += val.CUSTOM[i];
+                        i++;
+                    }
 
-                        while (Char.IsDigit(o.Preset[i]) && i < o.Preset.Length)
-                        {
-                            nums.Append(o.Preset[i]);
-                            i++;
-                        }
-                        n = Convert.ToInt32(nums);
-                        while (Char.IsLetter(o.Preset[i]) && i < o.Preset.Length)
-                        {
-                            switch (o.Preset[i])
-                            {
-                                case 'S':
-                                    sequence += "Small Preset, ";
-                                    break;
-
-                                case 'M':
-                                    sequence += "Medium Preset, ";
-                                    break;
-
-                                case 'L':
-                                    sequence += "Large Preset, ";
-                                    break;
-
-                                default:
-                                    break;
-                            }
-
-                            switch (o.Preset[i])
-                            {
-                                case 'k':
-                                    sequence += "thick crust pizza";
-                                    if (n > 1)
-                                        sequence += "s";
-                                    break;
-
-                                case 'n':
-                                    sequence += "thin crust pizza";
-                                    if (n > 1)
-                                        sequence += "s";
-                                    break;
-
-                                default:
-                                    break;
-                            }
-                            i++;
-                        }
-                        Map.Add(sequence, n);
-                    } while (i < o.Preset.Length);
-                }
-                if(o.Custom[0] != '-')
-                {
-                    i = 0;
-                    do
+                    n = Convert.ToInt32(nums);
+                    // Worst O(2)
+                    while (i < val.CUSTOM.Length && Char.IsLetter(val.CUSTOM[i]))
                     {
-                        nums = "";
-                        n = 0;
-                        sequence = "";
-                        //decrypt
-
-                        while (Char.IsDigit(o.Custom[i]) && i < o.Custom.Length)
+                        switch (val.CUSTOM[i])
                         {
-                            nums.Append(o.Custom[i]);
-                            i++;
+                            case 'S':
+                                sequence += "Small Custom, ";
+                                break;
+
+                            case 'M':
+                                sequence += "Medium Custom, ";
+                                break;
+
+                            case 'L':
+                                sequence += "Large Custom, ";
+                                break;
+
+                            case 'k':
+                                sequence += "thick crust pizza";
+                                if (n > 1)
+                                    sequence += "s";
+                                break;
+
+                            case 'n':
+                                sequence += "thin crust pizza";
+                                if (n > 1)
+                                    sequence += "s";
+                                break;
                         }
-                        n = Convert.ToInt32(nums);
-                        while (Char.IsLetter(o.Custom[i]) && i < o.Custom.Length)
-                        {
-                            switch (o.Custom[i])
-                            {
-                                case 'S':
-                                    sequence += "Small Custom, ";
-                                    break;
 
-                                case 'M':
-                                    sequence += "Medium Custom, ";
-                                    break;
+                        i++;
+                    }
 
-                                case 'L':
-                                    sequence += "Large Custom, ";
-                                    break;
-                            }
+                    Console.WriteLine(Convert.ToInt32(nums) + " " + sequence);
 
-                            switch (o.Custom[i])
-                            {
-                                case 'k':
-                                    sequence += "thick crust pizza";
-                                    if (n > 1)
-                                        sequence += "s";
-                                    break;
-
-                                case 'n':
-                                    sequence += "thin crust pizza";
-                                    if (n > 1)
-                                        sequence += "s";
-                                    break;
-                            }
-              
-                            i++;
-                        }
-                        Map.Add(sequence, n);
-                    } while (i < o.Custom.Length);
-                }
-                Console.WriteLine(o.Odate + ": Order #" + o.OrderId);
-                foreach(KeyValuePair<string,int> item in Map)
-                    Console.WriteLine(item.Value + " " + item.Key);
+                } while (i < val.CUSTOM.Length);
                 
                 Console.WriteLine();
-                
             }
-        */
         }
 
         public void Order()
