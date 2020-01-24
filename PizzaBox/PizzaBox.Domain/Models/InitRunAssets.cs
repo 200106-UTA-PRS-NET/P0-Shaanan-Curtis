@@ -72,8 +72,25 @@ namespace PizzaBox.Domain.Models
                     #endregion
 
                     var result = from u in DB.User where u.Username == Me.Username select u;
-                    Me.FullName = result.Single().FullName;
-                    Me.SessionLive = result.Single().SessionLive;
+                    if (result.Count() < 1)
+                    {
+                        Console.Clear();
+                        Error("Authentication");
+                        continue;
+                    }
+                    else
+                    {
+                        var result2 = from u in DB.User where u.Pass == Me.Pass select u;
+                        if (result2.Count() < 1)
+                        {
+                            Console.Clear();
+                            Error("Authentication");
+                            continue;
+                        }
+                    }
+
+                    Me.FullName = result.SingleOrDefault().FullName;
+                    Me.SessionLive = result.SingleOrDefault().SessionLive;
 
                     bool success = false;
                     switch (Me.SessionLive)
@@ -97,10 +114,25 @@ namespace PizzaBox.Domain.Models
                         break;
                 }
                 else
+                {
+                    Console.Clear();
                     Error("Authentication");
+                }
 
             } while (trials > 0);
 
+            return Me;
+        }
+
+        public User Login(string access_level)
+        {
+            User Me = new User();
+            
+            if (access_level == "sa-admin")
+                Console.WriteLine("Special Access Priority - Order For Customer\n");
+
+            Me = Login();
+ 
             return Me;
         }
 

@@ -17,6 +17,7 @@ namespace PizzaBox.Client
         static User CurrentUser = new User();
         static sbyte alive;
         public static bool exit_proc;
+        private static bool priority = false;
 
         /// <summary>
         /// - Runs while user is signed out.
@@ -68,7 +69,7 @@ namespace PizzaBox.Client
             }
         }
 
-        static void Session()
+        static int Session()
         {
             Console.WriteLine("Signed in as " + CurrentUser.FullName);
             switch (CurrentUser.Username)
@@ -76,7 +77,12 @@ namespace PizzaBox.Client
                 case "admin":
                     Employee PBAssociate = new Employee();
                     PBAssociate.Me = CurrentUser;
-                    PBAssociate.Session();
+                    if (PBAssociate.Session() == 1)
+                    {
+                        alive = 0;
+                        exit_proc = false;
+                        return 1;
+                    }
                     alive = PBAssociate.Me.SessionLive;
                     exit_proc = PBAssociate.Exits;
                     break;
@@ -84,11 +90,19 @@ namespace PizzaBox.Client
                 default:
                     Customer PBCustomer = new Customer();
                     PBCustomer.Me = CurrentUser;
-                    PBCustomer.Session();
+                    if (priority)
+                    {
+                        PBCustomer.Order();
+                        PBCustomer.Exit();
+                    }
+                    else
+                        PBCustomer.Session();
                     alive = PBCustomer.Me.SessionLive;
                     exit_proc = PBCustomer.Exits;
                     break;
             }
+
+            return 0;
         }
 
         static void Main()
@@ -100,14 +114,23 @@ namespace PizzaBox.Client
             {
                 do
                 {
-                    Console.WriteLine(header1);
-                    if (!shown)
+                    if(!priority)
                     {
-                        Console.WriteLine(header2);
-                        shown = true;
-                    }
+                        Console.WriteLine(header1);
+                        if (!shown)
+                        {
+                            Console.WriteLine(header2);
+                            shown = true;
+                        }
 
-                    InitRun();
+                        InitRun();
+                    }
+                    else
+                    {
+                        CurrentUser = Assets.Login("sa-admin");
+                        alive = CurrentUser.SessionLive;
+                    }
+                    
                 } while (alive == 0);
                 shown = false;
                 bool clearin = false;
@@ -119,7 +142,8 @@ namespace PizzaBox.Client
                         Console.Clear();
                         clearin = true;
                     }
-                    Session();
+                    if (Session() == 1)
+                        priority = true;
                 }
                 Console.Clear();
             }

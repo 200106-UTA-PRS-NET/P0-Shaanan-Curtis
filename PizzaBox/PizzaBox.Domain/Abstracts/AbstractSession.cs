@@ -4,6 +4,7 @@ using System.Linq;
 using System.Collections;
 using System.Collections.Generic;
 using PizzaBox.Storing.Repositories;
+using PizzaBox.Domain.Models;
 using Microsoft.EntityFrameworkCore;
 
 namespace PizzaBox.Domain.Abstracts
@@ -17,6 +18,20 @@ namespace PizzaBox.Domain.Abstracts
         internal bool exits = false;
         public bool Exits
         { get { return exits; } }
+
+        public const int toppings_arraylen = 4;
+        public struct Order_tracker
+        {
+            public bool preset;
+            public string preset_order;
+            public string size;
+            public string sauce;
+            public string crust;
+            public string cheese;
+            public int amt;
+            public string[] toppings;
+            public decimal cost;
+        };
 
         public int Locations()
         {
@@ -144,7 +159,6 @@ namespace PizzaBox.Domain.Abstracts
             Console.WriteLine();
         }
 
-        //!!!compute the cost from sequence
         public void History()
         {
             IDictionary<string, int> Map = new Dictionary<string, int>();
@@ -177,6 +191,11 @@ namespace PizzaBox.Domain.Abstracts
                     nums = "";
                     sequence = "";
 
+                    if (val.PRESET.Length > 0 && val.PRESET[0] == '-')
+                        break;
+                    else if (val.PRESET.Length == 0)
+                        break;
+
                     // Worst O(3)
                     while (i < val.PRESET.Length && Char.IsDigit(val.PRESET[i]))
                     {
@@ -184,7 +203,9 @@ namespace PizzaBox.Domain.Abstracts
                         i++;
                     }
 
-                    n = Convert.ToInt32(nums);
+                    if (!int.TryParse(nums, out n))
+                        break;
+
                     // Worst O(2)
                     while (i < val.PRESET.Length && Char.IsLetter(val.PRESET[i]))
                     {
@@ -223,12 +244,17 @@ namespace PizzaBox.Domain.Abstracts
                 } while (i < val.PRESET.Length);
 
                 i = 0; n = 0;
-                //TRANSLATE PRESETS
+                //TRANSLATE CUSTOMS
                 do
                 {
                     //reset for next pizza under presets
                     nums = "";
                     sequence = "";
+
+                    if (val.CUSTOM.Length > 0 && val.CUSTOM[0] == '-')
+                        break;
+                    else if (val.CUSTOM.Length == 0)
+                        break;
 
                     // Worst O(3)
                     while (i < val.CUSTOM.Length && Char.IsDigit(val.CUSTOM[i]))
@@ -237,7 +263,9 @@ namespace PizzaBox.Domain.Abstracts
                         i++;
                     }
 
-                    n = Convert.ToInt32(nums);
+                    if (!int.TryParse(nums, out n))
+                        break;
+
                     // Worst O(2)
                     while (i < val.CUSTOM.Length && Char.IsLetter(val.CUSTOM[i]))
                     {
@@ -278,20 +306,6 @@ namespace PizzaBox.Domain.Abstracts
                 Console.WriteLine();
             }
         }
-
-        const int toppings_arraylen = 4;
-        struct Order_tracker
-        {
-            public bool preset;
-            public string preset_order;
-            public string size;
-            public string sauce;
-            public string crust;
-            public string cheese;
-            public int amt;
-            public string[] toppings;
-            public decimal cost;
-        };
 
         public void Order()
         {
@@ -394,6 +408,7 @@ namespace PizzaBox.Domain.Abstracts
                     {
                         case "menu":
                         case "\"menu\"":
+                        case "m":
                             Console.WriteLine("MENU");
                             Menu();
                             break;
@@ -402,6 +417,8 @@ namespace PizzaBox.Domain.Abstracts
                         case "help":
                         case "\"info\"":
                         case "\"help\"":
+                        case "i":
+                        case "h":
                             Console.WriteLine("Sure thing...");
                             Console.WriteLine("Our pizzas come in two styles:");
                             Console.WriteLine("1. Preset - Pre-built specialty pizzas designed by our chef");
@@ -411,6 +428,7 @@ namespace PizzaBox.Domain.Abstracts
                         case "preset":
                         case "1. preset":
                         case "1":
+                        case "p":
                             ispreset = true;
                             Tracker.preset = true;
                             break;
@@ -418,6 +436,7 @@ namespace PizzaBox.Domain.Abstracts
                         case "custom":
                         case "2. custom":
                         case "2":
+                        case "c":
                             iscustom = true;
                             break;
 
@@ -449,7 +468,9 @@ namespace PizzaBox.Domain.Abstracts
                         {
                             //computecost(); make this a method and return out!!!
                             //or make a jump (take the leap)
-
+                            ComputeOrder(Tracker, Q, total_cost);
+                            //add order to db!!!
+                            return;
                         }
                         pizzas += number;
                         if (pizzas > 100)
@@ -854,6 +875,7 @@ namespace PizzaBox.Domain.Abstracts
                         Console.WriteLine("You are ordering from the " + results.SingleOrDefault().City + " store.\n");
                         switch (answer.ToLower())
                         {
+                            case "":
                             case "0":
                             case "none":
                             case "no":
@@ -906,7 +928,8 @@ namespace PizzaBox.Domain.Abstracts
                     do
                     {
                         Console.WriteLine("Pick your toppings.");
-                        Console.WriteLine("For multiple toppings, simply enter a stream of digits up to four:");
+                        Console.WriteLine("For multiple toppings, simply enter a stream of digits up to four.");
+                        Console.WriteLine("For any less, you will need to press enter twice:");
                         Console.WriteLine("0. None");
                         Console.WriteLine("1. Veggies/Fruit $0.50");
                         Console.WriteLine("2. Pepperoni $1");
@@ -917,12 +940,12 @@ namespace PizzaBox.Domain.Abstracts
                         answer = Console.ReadLine();
                         Console.Clear();
                         Console.WriteLine("You are ordering from the " + results.SingleOrDefault().City + " store.\n");
-                        int i = 0;
 
-                        if (answer.Length < 1 || answer[0] == '0')
+                        if (answer.Length==0 || answer[0] == '0')
                             break;
-
-                        while (i < answer.Length && i < toppings_arraylen)
+                        
+                        int i = 0;
+                        while ((i < answer.Length) && (i < toppings_arraylen))
                         {
                             if (Char.IsDigit(answer[i]))
                             {
@@ -953,7 +976,7 @@ namespace PizzaBox.Domain.Abstracts
                                         break;
                                 }
 
-                                if (Tracker.toppings[i].Length < 1)
+                                if (Tracker.toppings[i].Length == 0)
                                     break;
 
                             }
@@ -981,20 +1004,8 @@ namespace PizzaBox.Domain.Abstracts
                     Console.Write("Enter Y/N: ");
                     answer = Console.ReadLine();
                     Console.Clear();
-                    Console.WriteLine("You are ordering from the " + results.SingleOrDefault().City + " store.\n");
                     switch (answer.ToLower())
                     {
-                        case "y":
-                        case "yes":
-                        case "sure":
-                        case "ok":
-                        case "k":
-                        case "okay":
-                        case "alright":
-                        case "bet":
-                            Console.WriteLine("Okay");
-                            break;
-
                         case "n":
                         case "no":
                         case "not yet":
@@ -1003,49 +1014,118 @@ namespace PizzaBox.Domain.Abstracts
                             another = true;
                             break;
 
+                        case "y":
+                        case "yes":
+                        case "sure":
+                        case "ok":
+                        case "k":
+                        case "okay":
+                        case "alright":
+                            break;
+
                         default:
-                            Console.WriteLine("I'm going to take that as a no.");
+                            Console.Write("I'm going to take that as a no ");
+                            Loading('.', 3);
                             break;
                     }
                 }
 
                 total_cost += Tracker.cost;
                 Q.Add(Tracker);
+
                 if (total_cost > 250.00m)
                 {
                     Console.Clear();
-                    Console.WriteLine("Orders can not exceed $250.");
-                    Console.WriteLine("Choose which items you would like to remove:\n");
-
-                    for(int i=0; i<Q.Count; i++)
+                    trials = 3;
+                    do
                     {
-                        if(Q[i].preset)
-                            Console.WriteLine(i + ": (" + Q[i].amt + ") " + Q[i].size + ", " + Q[i].crust + " " + Q[i].preset_order);
+                        Console.WriteLine("Orders can not exceed $250.");
+                        Console.WriteLine("Choose which items you would like to remove:\n");
+
+                        for (int i = 0; i < Q.Count; i++)
+                        {
+                            if (Q[i].preset)
+                                Console.WriteLine(i + 1 + ": (" + Q[i].amt + ") " + Q[i].size + ", " + Q[i].crust + " " + Q[i].preset_order);
+                            else
+                            {
+                                Console.WriteLine(i + 1 + ": (" + Q[i].amt + ") " + Q[i].size + ", " + Q[i].crust + " " + Q[i].cheese + " on " + Q[i].sauce);
+                                Console.Write("Toppings: ");
+                                for (int j = 0; j < Q[i].toppings.Length; j++)
+                                {
+                                    Console.Write(Q[i].toppings[j]);
+
+                                    if (j < Q[i].toppings.Length - 1)
+                                        Console.Write(", ");
+                                }
+                                Console.WriteLine();
+                            }
+                            Console.WriteLine("$" + Tracker.cost + "\n");
+                        }
+
+                        Console.WriteLine("Total: $" + total_cost);
+                        Console.Write("Remove (Enter Digit): ");
+                        answer = Console.ReadLine();
+                        Console.Clear();
+                        if (int.TryParse(answer, out int num) && num > 0 && num <= Q.Count)
+                        {
+                            total_cost -= Q[num - 1].cost;
+                            Q.RemoveAt(num - 1);
+                        }
                         else
                         {
-                            Console.WriteLine(i + ": (" + Q[i].amt + ") " + Q[i].size + ", " + Q[i].crust + " " + Q[i].cheese + " on " + Q[i].sauce);
-                            Console.Write("Toppings: ");
-                            for (int j = 0; j < Q[i].toppings.Length; j++)
+                            if (trials > 1)
+                                Console.WriteLine("Please enter a valid digit according to the list below:");
+                            else
                             {
-                                Console.Write(Q[i].toppings[j]);
-
-                                if (j < Q[i].toppings.Length - 1)
-                                    Console.Write(", ");
+                                Console.WriteLine("Sorry, we tend to think inside the box.\nYou can always contact us directly at 7499274992 (PIZZAPIZZA).\n");
+                                Exit();
+                                return;
                             }
-                            Console.WriteLine();
-                        }
-                        Console.WriteLine("$" + Tracker.cost + "\n");
-                    }
-                }
 
+                            trials--;
+                        }
+                    } while (total_cost > 250.00m);
+
+                    if (total_cost == 0.00m)
+                        another = true;
+            }
             } while (another);
 
 
             //PRINT EACH FROM THE QUEUE
+            ComputeOrder(Tracker, Q, total_cost);
+
+            if(p_sequence.Length < 1)
+            {
+                p_sequence = "-";
+            }
+            else if(c_sequence.Length < 1)
+            {
+                c_sequence = "-";
+            }
+
+            //STORE AND PRINT
+            DB.Add(MyOrder);
+            DB.SaveChanges();
+
+            var inner = from ot in DB.Ordertype select ot.OrderId;
+            var outer = from o in DB.Orders where !inner.Contains(o.OrderId) select o;
+            ODetails.OrderId = outer.FirstOrDefault().OrderId;
+            ODetails.Preset = p_sequence;
+            ODetails.Custom = c_sequence;
+            DateTime date = DateTime.Now;
+            ODetails.Dt = date.ToString("MM/dd/yyyy");
+            ODetails.Tm = date.ToString("HH:mm");
+            DB.Add(ODetails);
+            DB.SaveChanges();
+        }
+
+        public void ComputeOrder(Order_tracker Tracker, List<Order_tracker> Q, decimal total_cost)
+        {
             Console.Clear();
             Console.WriteLine("Order Confirmed\n");
 
-            for(int i=0; i<Q.Count; i++)
+            for (int i = 0; i < Q.Count; i++)
             {
                 Tracker = Q[i];
 
@@ -1066,51 +1146,8 @@ namespace PizzaBox.Domain.Abstracts
                 }
                 Console.WriteLine("$" + Tracker.cost + "\n");
             }
-     
-            //CALCULATE OVERALL TOTAL
-            /*
-            //STORE AND PRINT
-            DB.Add(MyOrder);
-            DB.SaveChanges();
-
-            var inner = from ot in DB.Ordertype select ot.OrderId;
-            var outer = from o in DB.Orders where !inner.Contains(o.OrderId) select o;
-            ODetails.OrderId = outer.FirstOrDefault().OrderId;
-            ODetails.Preset = p_sequence;
-            ODetails.Custom = c_sequence;
-            DateTime date = DateTime.Now;
-            ODetails.Dt = date.ToString("MM/dd/yyyy");
-            ODetails.Tm = date.ToString("HH:mm");
-            */
-
-
-            /*
-             * 
-             *  
-             * SELECT * FROM ORDERS
-               WHERE ORDERS.OrderID NOT IN (SELECT ORDERTYPE.OrderID FROM ORDERTYPE
-                         GROUP BY ORDERTYPE.OrderID);
-
-             * where o.OrderId is not found in OT
-             * select o
-              var result = from o in DB.Orders
-                     join ot in DB.Ordertype
-                     on o.OrderId equals ot.OrderId
-                     where o.Username == Me.Username
-                     select new
-                     {
-                         ID = ot.OrderId,
-                         PRESET = ot.Preset,
-                         CUSTOM = ot.Custom,
-                         DATE = ot.Dt,
-                         TIME = ot.Tm
-                     };
-             */
-
-            //TAKE p_sequence and c_sequence and import to Ordertype obj
-
+            Console.WriteLine("Total: $" + total_cost);
         }
-
         public void Session()
         {
             string answer;
@@ -1187,6 +1224,7 @@ namespace PizzaBox.Domain.Abstracts
             Console.WriteLine("History - Display a list of recent orders by date");
             Console.WriteLine("Inventory - Display inventory");
             Console.WriteLine("Order - For orders by phone");
+            Console.WriteLine("Add Store - Add a new store to the list");
             Console.WriteLine("Clear - Clear screen");
             Console.WriteLine("Exit - Log out and exit application\n");
         }
@@ -1195,24 +1233,241 @@ namespace PizzaBox.Domain.Abstracts
         {
             //Query ORDER table for inventory
             Console.WriteLine("INVENTORY");
-            Console.WriteLine("Your store has enough ingredients for Preset pizzas");
-            Console.WriteLine("Your store has enough ingredints for Custom pizzas");
+            int tried = trials = 3;
+            int id = 0;
+            do
+            {
+                Console.WriteLine("Please select your location:");
+                int count = Locations();
+                Console.Write("Store ID (enter digit): ");
+                string locationid = Console.ReadLine();
+                Console.Clear();
+                if (int.TryParse(locationid, out id))
+                {
+                    if (id < 1 || id > count)
+                    {
+                        if (trials > 1)
+                        {
+                            Console.WriteLine("Please enter a digit according to store IDs displayed below:");
+                            trials--;
+                        }
+                        else
+                        {
+                            Console.WriteLine("You have failed to identify your shop " + tried + " times.");
+                            Exit();
+                            return;
+                        }
+                    }
+                    else
+                        break;
+                }
+            } while (trials > 0);
+
+            var query = from i in DB.Inventory
+                        where i.StoreId == id
+                        select i;
+
+            if(query.Count() > 0)
+            {
+                Console.WriteLine("Store #" + id.ToString().PadLeft(12 - id.ToString().Length, '0'));
+                Console.WriteLine("Has enough ingredients for " + query.SingleOrDefault().Preset + " Presets");
+                Console.WriteLine("Has enough ingredients for " + query.SingleOrDefault().Custom + " Customs");
+            }
+            else
+                Console.WriteLine("Inventory is currently unavailable.");
+  
             Console.WriteLine();
         }
 
         public void History()
         {
-            Console.WriteLine("RECENT STORE ORDERS");
-            Console.WriteLine();
+            Console.WriteLine("STORE ORDERS");
+            IDictionary<string, int> Map = new Dictionary<string, int>();
+            var result = from o in DB.Orders
+                         join ot in DB.Ordertype
+                         on o.OrderId equals ot.OrderId
+                         select new
+                         {
+                             ID = o.OrderId,
+                             USER = o.Username,
+                             PRESET = ot.Preset,
+                             CUSTOM = ot.Custom,
+                             DATE = ot.Dt,
+                             TIME = ot.Tm
+                         };
+
+            foreach (var val in result)
+            {
+                Console.WriteLine("Order #" + val.ID.ToString().PadLeft(12 - val.ID.ToString().Length, '0'));
+                string D = val.DATE.Replace('.', '/');
+                string T = val.TIME.Replace('.', ':');
+                Console.WriteLine(D + " " + T);
+
+                int i = 0, n = 0;
+                string nums, sequence;
+                //TRANSLATE PRESETS
+                do
+                {
+                    //reset for next pizza under presets
+                    nums = "";
+                    sequence = "";
+
+                    if (val.PRESET.Length > 0 && val.PRESET[0] == '-')
+                        break;
+                    else if (val.PRESET.Length == 0)
+                        break;
+
+                    // Worst O(3)
+                    while (i < val.PRESET.Length && Char.IsDigit(val.PRESET[i]))
+                    {
+                        nums += val.PRESET[i];
+                        i++;
+                    }
+
+                    if (!int.TryParse(nums, out n))
+                        break;
+
+                    // Worst O(2)
+                    while (i < val.PRESET.Length && Char.IsLetter(val.PRESET[i]))
+                    {
+                        switch (val.PRESET[i])
+                        {
+                            case 'S':
+                                sequence += "Small Preset, ";
+                                break;
+
+                            case 'M':
+                                sequence += "Medium Preset, ";
+                                break;
+
+                            case 'L':
+                                sequence += "Large Preset, ";
+                                break;
+
+                            case 'k':
+                                sequence += "thick crust pizza";
+                                if (n > 1)
+                                    sequence += "s";
+                                break;
+
+                            case 'n':
+                                sequence += "thin crust pizza";
+                                if (n > 1)
+                                    sequence += "s";
+                                break;
+                        }
+
+                        i++;
+                    }
+
+                    Console.WriteLine(Convert.ToInt32(nums) + " " + sequence);
+
+                } while (i < val.PRESET.Length);
+
+                i = 0; n = 0;
+                //TRANSLATE CUSTOMS
+                do
+                {
+                    //reset for next pizza under presets
+                    nums = "";
+                    sequence = "";
+
+                    if (val.CUSTOM.Length > 0 && val.CUSTOM[0] == '-')
+                        break;
+                    else if (val.CUSTOM.Length == 0)
+                        break;
+
+                    // Worst O(3)
+                    while (i < val.CUSTOM.Length && Char.IsDigit(val.CUSTOM[i]))
+                    {
+                        nums += val.CUSTOM[i];
+                        i++;
+                    }
+
+                    if (!int.TryParse(nums, out n))
+                        break;
+
+                    // Worst O(2)
+                    while (i < val.CUSTOM.Length && Char.IsLetter(val.CUSTOM[i]))
+                    {
+                        switch (val.CUSTOM[i])
+                        {
+                            case 'S':
+                                sequence += "Small Custom, ";
+                                break;
+
+                            case 'M':
+                                sequence += "Medium Custom, ";
+                                break;
+
+                            case 'L':
+                                sequence += "Large Custom, ";
+                                break;
+
+                            case 'k':
+                                sequence += "thick crust pizza";
+                                if (n > 1)
+                                    sequence += "s";
+                                break;
+
+                            case 'n':
+                                sequence += "thin crust pizza";
+                                if (n > 1)
+                                    sequence += "s";
+                                break;
+                        }
+
+                        i++;
+                    }
+
+                    Console.WriteLine(Convert.ToInt32(nums) + " " + sequence);
+
+                } while (i < val.CUSTOM.Length);
+
+                Console.WriteLine();
+            }
         }
 
-        public void Order()
+        public void AddStore()
         {
-            Console.WriteLine("MAKE AN ORDER FOR CUSTOMER");
+            int trials = 3;
+            bool flag = false;
+            do
+            {
+                Console.WriteLine("STORE DETAILS");
+                if(flag)
+                    Console.WriteLine("*255 character limit");
+                Console.Write("Enter City: ");
+                string city = Console.ReadLine();
+                if (flag)
+                    Console.WriteLine("*2 character abbreviations only");
+                Console.Write("Enter State (e.g TX): ");
+                string state = Console.ReadLine();
+                if (flag)
+                    Console.WriteLine("*5 to 10 digit zip code");
+                Console.Write("Enter Zip: ");
+                string zip = Console.ReadLine();
+
+                if (city.Length > 255 || state.Length < 2 || state.Length > 2 || zip.Length < 5 || zip.Length > 10)
+                {
+                    if (trials == 1)
+                        Exit();
+
+                    Console.Clear();
+                    flag = true;
+                    trials--;
+                }
+                else
+                    break;
+
+            } while (trials > 0);
+
             Console.WriteLine();
+            Console.WriteLine("Thank you for your request. Your DB Admin will get in touch with you shortly.\n");
+
         }
 
-        public void Session()
+        public int Session()
         {
             string answer;
 
@@ -1236,7 +1491,7 @@ namespace PizzaBox.Domain.Abstracts
                 case "locations":
                 case "location":
                 case "stores":
-                case "store":
+                case "shops":
                     Locations();
                     break;
 
@@ -1249,7 +1504,15 @@ namespace PizzaBox.Domain.Abstracts
                     break;
 
                 case "order":
-                    Order();
+                    if (Authenticator())
+                        return 1;
+                    break;
+
+                case "add":
+                case "create":
+                case "add store":
+                case "create store":
+                    AddStore();
                     break;
 
                 case "cls":
@@ -1267,6 +1530,40 @@ namespace PizzaBox.Domain.Abstracts
                     CLError(answer);
                     break;
             }
+            return 0;
+        }
+
+        bool Authenticator()
+        {
+            Console.WriteLine("As an employee, you agree to be held liable for any misuse of the following information:");
+            Console.WriteLine("1. Agree");
+            Console.WriteLine("2. Disagree");
+            Console.WriteLine();
+            Console.Write("Your answer: ");
+            string answer = Console.ReadLine();
+            bool pass = false;
+            switch(answer.ToLower())
+            {
+                case "1":
+                case "1. agree":
+                case "agree":
+                case "agreed":
+                case "yes":
+                case "ok":
+                case "okay":
+                case "sure":
+                case "of course":
+                case "i agree":
+                case "i do":
+                case "yes i do":
+                    pass = true;
+                    break;
+
+                default:
+                    break;
+            }
+
+            return pass;
         }
     }
 }
