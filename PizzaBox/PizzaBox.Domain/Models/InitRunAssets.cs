@@ -58,7 +58,8 @@ namespace PizzaBox.Domain.Models
                 Console.WriteLine();
                 #endregion
 
-                if (DB.User.Any(u => u.Username == Me.Username) && DB.User.Any(p => p.Pass == Me.Pass))
+                //case sensitive verification
+                if (DB.User.Where(u => u.Username.Contains(Me.Username)).Count() > 0 && DB.User.Where(p => p.Pass.Contains(Me.Pass) && p.Username.Contains(Me.Username)).Count() > 0)
                 {
                     #region unnecessary loading commented out
                     /*
@@ -127,20 +128,27 @@ namespace PizzaBox.Domain.Models
             {
                 Console.Write("Account Type (customer or employee): ");
                 answer = Console.ReadLine();
-
+           
+                
                 if (answer.ToLower() == "employee")
                 {
-                    newUser.Username = "admin";
-                    break;
+                    if (DB.User.Any(u => u.Username == "admin"))
+                        Error("exists");
+                    else
+                    {
+                        newUser.Username = "admin";
+                        break;
+                    }
                 }
                 else if (answer.ToLower() == "customer")
                     break;
+                else
+                    Error("Entry");
 
-                Error("Entry");
-
-            } while (answer.ToLower() != "employee" && answer.ToLower() != "customer");
+            } while (trials > 0);
 
             //Username:
+            bool pass = false;
             trials = 3;
             do
             {
@@ -149,21 +157,24 @@ namespace PizzaBox.Domain.Models
                 {
                     case "admin":
                         Console.WriteLine("admin");
+                        pass = true;
                         break;
 
                     default:
                         newUser.Username = Console.ReadLine();
                         if (newUser.Username.ToLower() == "admin")
                             newUser.Username = "";
+                        else if (DB.User.Any(u => u.Username == newUser.Username))
+                            Error("exists");
+                        else
+                            pass = true;
                         break;
                 }
 
                 if (newUser.Username.Length == 0)
                     Error("User");
-                else
-                    break;
-
-            } while (newUser.Username.Length == 0);
+                
+            } while (!pass);
 
             //Password:
             Console.Write("Password: ");
@@ -191,7 +202,6 @@ namespace PizzaBox.Domain.Models
             newUser.SessionLive = 1;
             DB.Add(newUser);
             DB.SaveChanges();
-
             return newUser;
         }
 
@@ -260,6 +270,10 @@ namespace PizzaBox.Domain.Models
 
                         case "session":
                             Console.WriteLine("User is already signed in. Try again.\n");
+                            break;
+
+                        case "exists":
+                            Console.WriteLine("User already exists. Try again.\n");
                             break;
                     }
                     break;

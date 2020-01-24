@@ -279,26 +279,34 @@ namespace PizzaBox.Domain.Abstracts
             }
         }
 
+        const int toppings_arraylen = 4;
+        struct Order_tracker
+        {
+            public bool preset;
+            public string preset_order;
+            public string size;
+            public string sauce;
+            public string crust;
+            public string cheese;
+            public int amt;
+            public string[] toppings;
+            public decimal cost;
+        };
+
         public void Order()
         {
-            decimal total_cost = 0.00m;
-            string preset_order = "";
-            string size = "";
-            string sauce = "";
-            string crust = "";
-            string cheese = "";
-            int curr_amt = 0;
-            int pizzas = 0;
-            const int toppings_arraylen = 4;
-            string[] toppings = new string[toppings_arraylen];  //may need to initialize each element
-            for(int i=0; i<toppings.Length; i++)
-                toppings[i] = "";
-
-            string sequence = "";           //save sequence (preset & custom)
-
             Orders MyOrder = new Orders();
             Ordertype ODetails = new Ordertype();
+            Order_tracker Tracker;
+            List<Order_tracker>Q = new List<Order_tracker>();
+
             MyOrder.Username = Me.Username;
+
+            decimal total_cost = 0.00m;
+            int pizzas = 0;
+
+            string p_sequence = "";           //save sequence (holds total order for preset)
+            string c_sequence = "";           //save sequence (holds total order for custom)
 
             //LOCATION
             int count = 0;
@@ -338,423 +346,769 @@ namespace PizzaBox.Domain.Abstracts
                 return;
             }
 
-            //PRESET OR CUSTOM?
-            trials = 3;
-            string answer = "";
-            bool shown = false, ispreset = false, iscustom = false;
+            string answer;
+            bool shown, ispreset, iscustom, error;
             var results = from s in DB.Store where s.StoreId == MyOrder.StoreId select s;
-            Console.WriteLine("You are ordering from the " + results.SingleOrDefault().City + " store.\n");
+            
+            bool another;
             do
             {
-                Console.WriteLine("Would you like a Preset or Custom pizza today?");
-                if (!shown)
-                {
-                    Console.WriteLine();
-                    Console.WriteLine("For menu, just enter \"menu\" at any time.");
-                    Console.WriteLine("For additional information, just enter \"info\" or \"help\".");
-                    shown = true;
-                }
+                answer = "";
+                shown = false;
+                error = false;
+                ispreset = false;
+                iscustom = false;
+                another = false;
 
-                Console.Write("Order (style): ");
-                answer = Console.ReadLine();
-                Console.Clear();
+                Tracker.preset = false;
+                Tracker.preset_order = "";
+                Tracker.size = "";
+                Tracker.sauce = "";
+                Tracker.crust = "";
+                Tracker.cheese = "";
+                Tracker.amt = 0;
+                Tracker.toppings = new string[toppings_arraylen];
+                Tracker.cost = 0.00m;
+                for (int i = 0; i < Tracker.toppings.Length; i++)
+                    Tracker.toppings[i] = "";
+
+                //PRESET OR CUSTOM
                 Console.WriteLine("You are ordering from the " + results.SingleOrDefault().City + " store.\n");
-                switch (answer.ToLower())
-                {
-                    case "menu":
-                    case "\"menu\"":
-                        Console.WriteLine("MENU");
-                        Menu();
-                        break;
-
-                    case "info":
-                    case "help":
-                    case "\"info\"":
-                    case "\"help\"":
-                        Console.WriteLine("Sure thing...");
-                        Console.WriteLine("Our pizzas come in two styles:");
-                        Console.WriteLine("1. Preset - Pre-built specialty pizzas designed by our chef");
-                        Console.WriteLine("2. Custom - Be a boss and choose your own toppings\n");
-                        break;
-
-                    case "preset":
-                    case "1. preset":
-                    case "1":
-                        ispreset = true;
-                        break;
-
-                    case "custom":
-                    case "2. custom":
-                    case "2":
-                        iscustom = true;
-                        break;
-
-                    default:
-                        CLError(answer);
-                        break;
-                }
-
-                if(ispreset || iscustom)
-                    break;
-                
-            } while (trials > 0);
-            if (trials < 1)
-                return;
-
-            //AMOUNT PRESET/CUSTOM
-            trials = 3;
-            do
-            {
-                Console.WriteLine("How many would you like?");
-                Console.Write("Order (enter digit): ");
-                answer = Console.ReadLine();
-                Console.Clear();
-                Console.WriteLine("You are ordering from the " + results.SingleOrDefault().City + " store.\n");
-                if (int.TryParse(answer, out int number))
-                {
-                    sequence += answer;
-                    curr_amt = number;
-                    pizzas += curr_amt;
-                    break;
-                }
-                else
-                {
-                    if (trials > 1)
-                        Console.WriteLine("Please enter a digit amount.");
-                    else
-                    {
-                        CLError(answer);
-                        return;
-                    }
-                }
-
-                trials--;
-            } while (trials > 0);
-           
-            if (ispreset)
-            {
-                //PRESET NAME
                 trials = 3;
                 do
                 {
-                    Console.WriteLine("Please choose from the menu below:");
-                    Console.WriteLine("Preset");
-                    Console.WriteLine("1. Vegan | Small $4 | Medium $8 | Large $12");
-                    Console.WriteLine("2. Pepperoni | Small $5 | Medium $10 | Large $15");
-                    Console.WriteLine("3. BBQ Chicken | Small $6 | Medium $12 | Large $18");
-                    Console.WriteLine("4. Meatball | Small $7 | Medium $14 | Large $21");
-                    Console.WriteLine("5. Supreme | Small $8 | Medium $16 | Large $24");
-                    Console.WriteLine("6. Greek | Small $9 | Medium $18 | Large $27\n");
+                    Console.WriteLine("Would you like a Preset or Custom pizza?");
+                    if (!shown)
+                    {
+                        Console.WriteLine();
+                        Console.WriteLine("For menu, just enter \"menu\" at any time.");
+                        Console.WriteLine("For additional information, just enter \"info\" or \"help\".");
+                        shown = true;
+                    }
 
-                    Console.Write("Order (enter digit): ");
+                    Console.Write("Order (style): ");
                     answer = Console.ReadLine();
                     Console.Clear();
                     Console.WriteLine("You are ordering from the " + results.SingleOrDefault().City + " store.\n");
                     switch (answer.ToLower())
                     {
+                        case "menu":
+                        case "\"menu\"":
+                            Console.WriteLine("MENU");
+                            Menu();
+                            break;
+
+                        case "info":
+                        case "help":
+                        case "\"info\"":
+                        case "\"help\"":
+                            Console.WriteLine("Sure thing...");
+                            Console.WriteLine("Our pizzas come in two styles:");
+                            Console.WriteLine("1. Preset - Pre-built specialty pizzas designed by our chef");
+                            Console.WriteLine("2. Custom - Be a boss and choose your own toppings\n");
+                            break;
+
+                        case "preset":
+                        case "1. preset":
                         case "1":
-                        case "vegan":
-                            preset_order = "VEGAN";
+                            ispreset = true;
+                            Tracker.preset = true;
                             break;
 
+                        case "custom":
+                        case "2. custom":
                         case "2":
-                        case "pepperoni":
-                            preset_order = "PEPPERONI";
-                            break;
-
-                        case "3":
-                        case "bbq":
-                        case "chicken":
-                        case "bbq chicken":
-                            preset_order = "BBQ CHICKEN";
-                            break;
-
-                        case "4":
-                        case "meatball":
-                        case "meat":
-                            preset_order = "MEATBALL";
-                            break;
-
-                        case "5":
-                        case "supreme":
-                            preset_order = "SUPREME";
-                            break;
-
-                        case "6":
-                        case "greek":
-                            preset_order = "GREEK";
+                            iscustom = true;
                             break;
 
                         default:
                             CLError(answer);
                             break;
                     }
-                    
-                    if (preset_order.Length > 0)
+
+                    // now that Tracker.preset, these are unnecessary variables (deal with it later)!!!
+                    if (ispreset || iscustom)
                         break;
 
                 } while (trials > 0);
                 if (trials < 1)
                     return;
-            }
 
-            //SIZE
-            trials = 3;
-            do
-            {
-                Console.WriteLine("Would you like that in a Small, Medium, or Large?");
-                Console.Write("Order (size): ");
-                answer = Console.ReadLine();
-                Console.Clear();
-                Console.WriteLine("You are ordering from the " + results.SingleOrDefault().City + " store.\n");
-                switch (answer.ToLower())
-                {
-                    case "s":
-                    case "sm":
-                    case "small":
-                        sequence += "S";
-                        size = "SMALL";
-                        break;
-
-                    case "m":
-                    case "md":
-                    case "medium":
-                        sequence += "M";
-                        size = "MEDIUM";
-                        break;
-
-                    case "l":
-                    case "lg":
-                    case "large":
-                        sequence += "L";
-                        size = "LARGE";
-                        break;
-
-                    default:
-                        CLError(answer);
-                        break;
-                }
-
-                if (size.Length > 0)
-                    break;
-
-            } while (trials > 0);
-            if (trials < 1)
-                return;
-
-            //CRUST
-            trials = 3;
-            do
-            {
-                Console.WriteLine("Crust Thick or Thin?");
-                Console.Write("Order (crust): ");
-                answer = Console.ReadLine();
-                Console.Clear();
-                Console.WriteLine("You are ordering from the " + results.SingleOrDefault().City + " store.\n");
-                switch(answer.ToLower())
-                {
-                    case "1":
-                    case "thick":
-                    case "thick crust":
-                        sequence += "k";
-                        crust = "THICK";
-                        break;
-
-                    case "2":
-                    case "thin":
-                    case "thin crust":
-                        sequence += "n";
-                        crust = "THIN";
-                        break;
-
-                    default:
-                        CLError(answer);
-                        break;
-                }
-
-                if (crust.Length > 0)
-                    break;
-
-            } while (trials > 0);
-            if (trials < 1)
-                return;
-
-            if(iscustom)
-            {
-                //SAUCE
+                //AMOUNT PRESET/CUSTOM
                 trials = 3;
                 do
                 {
-                    Console.WriteLine("Choose a sauce:");
-                    Console.WriteLine("1. Traditional $0.50");
-                    Console.WriteLine("2. BBQ $1");
-                    Console.WriteLine("3. Alfredo $1\n");
-
+                    Console.WriteLine("How many would you like?");
                     Console.Write("Order (enter digit): ");
                     answer = Console.ReadLine();
                     Console.Clear();
                     Console.WriteLine("You are ordering from the " + results.SingleOrDefault().City + " store.\n");
-                    switch (answer.ToLower())
+                    if (int.TryParse(answer, out int number))
                     {
-                        case "1":
-                        case "traditional":
-                        case "trad":
-                            sauce = "TRADITIONAL";
-                            break;
-
-                        case "2":
-                        case "bbq":
-                        case "barbeque":
-                            sauce = "BBQ";
-                            break;
-
-                        case "3":
-                        case "alfredo":
-                        case "fredo":
-                            sauce = "ALFREDO";
-                            break;
-
-                        default:
-                            CLError(answer);
-                            break;
-                    }
-
-                    if(sauce.Length > 0)
-                        break;
-                 
-                } while (trials > 0);
-                if (trials < 1)
-                    return;
-
-                //CHEESE
-                trials = 3;
-                do
-                {
-                    Console.WriteLine("Pick a cheese:");
-                    Console.WriteLine("0. None");
-                    Console.WriteLine("1. Regular $0.50");
-                    Console.WriteLine("2. Goat (Greek) $1");
-                    Console.WriteLine("3. Queso $2\n");
-
-                    Console.Write("Order (enter digit): ");
-                    answer = Console.ReadLine();
-                    Console.Clear();
-                    Console.WriteLine("You are ordering from the " + results.SingleOrDefault().City + " store.\n");
-                    switch(answer.ToLower())
-                    {
-                        case "0":
-                        case "none":
-                        case "no":
-                        case "no cheese":
-                        case "no thanks":
-                        case "no thankyou":
-                        case "no thank you":
-                            cheese = "NONE";
-                            break;
-
-                        case "1":
-                        case "regular":
-                        case "reg":
-                            cheese = "REGULAR";
-                            break;
-
-                        case "2":
-                        case "goat":
-                        case "greek":
-                        case "goat (greek)":
-                        case "goat greek":
-                        case "greek goat":
-                            cheese = "GOAT";
-                            break;
-
-                        case "3":
-                        case "queso":
-                        case "queso fresco":
-                        case "fresco":
-                            cheese = "QUESO";
-                            break;
-
-                        default:
-                            CLError(answer);
-                            break;
-                    }
-
-                    if (cheese.Length > 0)
-                        break;
-
-                } while (trials > 0);
-                if (trials < 1)
-                    return;
-
-                //TOPPINGS
-                trials = 3;
-                do
-                {
-                    Console.WriteLine("Pick your toppings.");
-                    Console.WriteLine("For multiple toppings, simply enter a stream of digits up to four:");
-                    Console.WriteLine("0. None");
-                    Console.WriteLine("1. Veggies/Fruit $0.50");
-                    Console.WriteLine("2. Pepperoni $1");
-                    Console.WriteLine("3. Chicken $1");
-                    Console.WriteLine("4. Meatballs $3\n");
-
-                    Console.Write("Order (enter digit/s): ");
-                    answer = Console.ReadLine();
-                    Console.Clear();
-                    Console.WriteLine("You are ordering from the " + results.SingleOrDefault().City + " store.\n");
-                    int i = 0;
-                    bool none = false;
-
-                    if (answer.Length < 1 || answer[0] == '0')
-                        break;
-
-                    while (i < answer.Length && i < toppings_arraylen)
-                    {
-                        if (Char.IsDigit(answer[i]))
+                        if(number < 1)
                         {
-                            switch (answer[i])
-                            {
-                                case '1':
-                                    toppings[i] = "VEGGIES/FRUIT";
-                                    break;
-
-                                case '2':
-                                    toppings[i] = "PEPPERONI";
-                                    break;
-
-                                case '3':
-                                    toppings[i] = "CHICKEN";
-                                    break;
-
-                                case '4':
-                                    toppings[i] = "MEATBALLS";
-                                    break;
-
-                                default:
-                                    CLError(answer);
-                                    break;
-                            }
-
-                            if (toppings[i].Length < 1)
-                                break;
+                            //computecost(); make this a method and return out!!!
+                            //or make a jump (take the leap)
 
                         }
+                        pizzas += number;
+                        if (pizzas > 100)
+                        {
+                            pizzas -= number;
+
+                            if (trials > 1)
+                            {
+                                Console.Write("Orders limited to 100 pizzas at a time: ");
+                                if(100-pizzas > 0)
+                                {
+                                    Console.WriteLine(100 - pizzas + " remaining");
+                                }
+                          
+                                error = true;
+                            }
+                            else
+                            {
+                                Console.WriteLine("Sorry, we tend to think inside the box.\nYou can always contact us directly at 7499274992 (PIZZAPIZZA).\n");
+                                Exit();
+                                return;
+                            }
+                        }
+                        else if (ispreset)
+                            p_sequence += answer;
+                        else
+                            c_sequence += answer;
+                            
+                        if(!error)
+                        {
+                            Tracker.amt = number;
+                            break;
+                        }
+                    }
+                    else
+                    {
+                        if (trials > 1)
+                            Console.WriteLine("Please enter a digit amount.");
                         else
                         {
                             CLError(answer);
-                            break;
+                            return;
                         }
-
-                        i++;
                     }
 
-                    if (toppings[toppings_arraylen - 1].Length > 0)
+                    trials--;
+                } while (trials > 0);
+
+                //PRESET ORDER SPECIFIC
+                if (ispreset)
+                {
+                    //PRESET NAME
+                    trials = 3;
+                    do
+                    {
+                        Console.WriteLine("Please choose from the menu below:");
+                        Console.WriteLine("Preset");
+                        Console.WriteLine("1. Vegan | Small $4 | Medium $8 | Large $12");
+                        Console.WriteLine("2. Pepperoni | Small $5 | Medium $10 | Large $15");
+                        Console.WriteLine("3. BBQ Chicken | Small $6 | Medium $12 | Large $18");
+                        Console.WriteLine("4. Meatball | Small $7 | Medium $14 | Large $21");
+                        Console.WriteLine("5. Supreme | Small $8 | Medium $16 | Large $24");
+                        Console.WriteLine("6. Greek | Small $9 | Medium $18 | Large $27\n");
+
+                        Console.Write("Order (enter digit): ");
+                        answer = Console.ReadLine();
+                        Console.Clear();
+                        Console.WriteLine("You are ordering from the " + results.SingleOrDefault().City + " store.\n");
+                        switch (answer.ToLower())
+                        {
+                            case "1":
+                            case "vegan":
+                                Tracker.preset_order = "VEGAN";
+                                break;
+
+                            case "2":
+                            case "pepperoni":
+                                Tracker.preset_order = "PEPPERONI";
+                                break;
+
+                            case "3":
+                            case "bbq":
+                            case "chicken":
+                            case "bbq chicken":
+                                Tracker.preset_order = "BBQ CHICKEN";
+                                break;
+
+                            case "4":
+                            case "meatball":
+                            case "meat":
+                                Tracker.preset_order = "MEATBALL";
+                                break;
+
+                            case "5":
+                            case "supreme":
+                                Tracker.preset_order = "SUPREME";
+                                break;
+
+                            case "6":
+                            case "greek":
+                                Tracker.preset_order = "GREEK";
+                                break;
+
+                            default:
+                                CLError(answer);
+                                break;
+                        }
+
+                        if (Tracker.preset_order.Length > 0)
+                            break;
+
+                    } while (trials > 0);
+                    if (trials < 1)
+                        return;
+                }
+
+                //SIZE
+                trials = 3;
+                do
+                {
+                    Console.WriteLine("Would you like that in a Small, Medium, or Large?");
+                    Console.Write("Order (size): ");
+                    answer = Console.ReadLine();
+                    Console.Clear();
+                    Console.WriteLine("You are ordering from the " + results.SingleOrDefault().City + " store.\n");
+                    switch (answer.ToLower())
+                    {
+                        case "s":
+                        case "sm":
+                        case "small":
+                            if (ispreset)
+                                p_sequence += "S";
+                            else
+                            {
+                                c_sequence += "S";
+                                Tracker.cost += Tracker.amt * 3.00m;
+                            }
+
+                            Tracker.size = "SMALL";
+                            break;
+
+                        case "m":
+                        case "md":
+                        case "medium":
+                            if (ispreset)
+                                p_sequence += "M";
+                            else
+                            {
+                                c_sequence += "M";
+                                Tracker.cost += Tracker.amt * 6.00m;
+                            }
+
+                            Tracker.size = "MEDIUM";
+                            break;
+
+                        case "l":
+                        case "lg":
+                        case "large":
+                            if (ispreset)
+                                p_sequence += "L";
+                            else
+                            {
+                                c_sequence += "L";
+                                Tracker.cost += Tracker.amt * 9.00m;
+                            }
+
+                            Tracker.size = "LARGE";
+                            break;
+
+                        default:
+                            CLError(answer);
+                            break;
+                    }
+
+                    if (Tracker.size.Length > 0)
                         break;
 
                 } while (trials > 0);
                 if (trials < 1)
                     return;
+
+                //IF PRESET, GO AHEAD AND CALCULATE COST
+                if (Tracker.preset)
+                {
+                    switch(Tracker.preset_order)
+                    {
+                        case "VEGAN":
+                            //put the entire switch statement in a method and take in as parameter decimal starting val (V:4.00, P:5.00, etc) and Tracker.size
+                            //then just call the method in each case with different arguments
+                            switch (Tracker.size)
+                            {
+                                case "SMALL":
+                                    Tracker.cost = Tracker.amt * 4.00m;
+                                    break;
+
+                                case "MEDIUM":
+                                    Tracker.cost = Tracker.amt * 8.00m;
+                                    break;
+
+                                case "LARGE":
+                                    Tracker.cost = Tracker.amt * 12.00m;
+                                    break;
+                            }
+                            break;
+
+                        case "PEPPERONI":
+                            switch (Tracker.size)
+                            {
+                                case "SMALL":
+                                    Tracker.cost = Tracker.amt * 5.00m;
+                                    break;
+
+                                case "MEDIUM":
+                                    Tracker.cost = Tracker.amt * 10.00m;
+                                    break;
+
+                                case "LARGE":
+                                    Tracker.cost = Tracker.amt * 15.00m;
+                                    break;
+                            }
+                            break;
+
+                        case "BBQ CHICKEN":
+                            switch (Tracker.size)
+                            {
+                                case "SMALL":
+                                    Tracker.cost = Tracker.amt * 6.00m;
+                                    break;
+
+                                case "MEDIUM":
+                                    Tracker.cost = Tracker.amt * 12.00m;
+                                    break;
+
+                                case "LARGE":
+                                    Tracker.cost = Tracker.amt * 18.00m;
+                                    break;
+                            }
+                            break;
+
+                        case "MEATBALL":
+                            switch (Tracker.size)
+                            {
+                                case "SMALL":
+                                    Tracker.cost = Tracker.amt * 7.00m;
+                                    break;
+
+                                case "MEDIUM":
+                                    Tracker.cost = Tracker.amt * 14.00m;
+                                    break;
+
+                                case "LARGE":
+                                    Tracker.cost = Tracker.amt * 21.00m;
+                                    break;
+                            }
+                            break;
+
+                        case "SUPREME":
+                            switch (Tracker.size)
+                            {
+                                case "SMALL":
+                                    Tracker.cost = Tracker.amt * 8.00m;
+                                    break;
+
+                                case "MEDIUM":
+                                    Tracker.cost = Tracker.amt * 16.00m;
+                                    break;
+
+                                case "LARGE":
+                                    Tracker.cost = Tracker.amt * 24.00m;
+                                    break;
+                            }
+                            break;
+
+                        case "GREEK":
+                            switch (Tracker.size)
+                            {
+                                case "SMALL":
+                                    Tracker.cost = Tracker.amt * 9.00m;
+                                    break;
+
+                                case "MEDIUM":
+                                    Tracker.cost = Tracker.amt * 18.00m;
+                                    break;
+
+                                case "LARGE":
+                                    Tracker.cost = Tracker.amt * 27.00m;
+                                    break;
+                            }
+                            break;
+                    }
+                }
+
+                //CRUST
+                trials = 3;
+                do
+                {
+                    Console.WriteLine("Crust Thick or Thin?");
+                    Console.Write("Order (crust): ");
+                    answer = Console.ReadLine();
+                    Console.Clear();
+                    Console.WriteLine("You are ordering from the " + results.SingleOrDefault().City + " store.\n");
+                    switch (answer.ToLower())
+                    {
+                        case "1":
+                        case "thick":
+                        case "thick crust":
+                            if (ispreset)
+                                p_sequence += "k";
+                            else
+                                c_sequence += "k";
+
+                            Tracker.crust = "THICK";
+                            break;
+
+                        case "2":
+                        case "thin":
+                        case "thin crust":
+                            if (ispreset)
+                                p_sequence += "n";
+                            else
+                                c_sequence += "n";
+
+                            Tracker.crust = "THIN";
+                            break;
+
+                        default:
+                            CLError(answer);
+                            break;
+                    }
+
+                    if (Tracker.crust.Length > 0)
+                        break;
+
+                } while (trials > 0);
+                if (trials < 1)
+                    return;
+
+                //CUSTOM ORDER SPECIFIC
+                if (iscustom)
+                {
+                    //SAUCE
+                    trials = 3;
+                    do
+                    {
+                        Console.WriteLine("Choose a sauce:");
+                        Console.WriteLine("1. Traditional $0.50");
+                        Console.WriteLine("2. BBQ $1");
+                        Console.WriteLine("3. Alfredo $1\n");
+
+                        Console.Write("Order (enter digit): ");
+                        answer = Console.ReadLine();
+                        Console.Clear();
+                        Console.WriteLine("You are ordering from the " + results.SingleOrDefault().City + " store.\n");
+                        switch (answer.ToLower())
+                        {
+                            case "1":
+                            case "traditional":
+                            case "trad":
+                                Tracker.sauce = "TRADITIONAL";
+                                Tracker.cost += Tracker.amt * 0.50m;
+                                break;
+
+                            case "2":
+                            case "bbq":
+                            case "barbeque":
+                                Tracker.sauce = "BBQ";
+                                Tracker.cost += Tracker.amt * 1.00m;
+                                break;
+
+                            case "3":
+                            case "alfredo":
+                            case "fredo":
+                                Tracker.sauce = "ALFREDO";
+                                Tracker.cost += Tracker.amt * 1.00m;
+                                break;
+
+                            default:
+                                CLError(answer);
+                                break;
+                        }
+
+                        if (Tracker.sauce.Length > 0)
+                            break;
+
+                    } while (trials > 0);
+                    if (trials < 1)
+                        return;
+
+                    //CHEESE
+                    trials = 3;
+                    do
+                    {
+                        Console.WriteLine("Pick a cheese:");
+                        Console.WriteLine("0. None");
+                        Console.WriteLine("1. Regular $0.50");
+                        Console.WriteLine("2. Goat (Greek) $1");
+                        Console.WriteLine("3. Queso $2\n");
+
+                        Console.Write("Order (enter digit): ");
+                        answer = Console.ReadLine();
+                        Console.Clear();
+                        Console.WriteLine("You are ordering from the " + results.SingleOrDefault().City + " store.\n");
+                        switch (answer.ToLower())
+                        {
+                            case "0":
+                            case "none":
+                            case "no":
+                            case "no cheese":
+                            case "no thanks":
+                            case "no thankyou":
+                            case "no thank you":
+                                Tracker.cheese = "NONE";
+                                break;
+
+                            case "1":
+                            case "regular":
+                            case "reg":
+                                Tracker.cheese = "REGULAR";
+                                Tracker.cost += Tracker.amt * 0.50m;
+                                break;
+
+                            case "2":
+                            case "goat":
+                            case "greek":
+                            case "goat (greek)":
+                            case "goat greek":
+                            case "greek goat":
+                                Tracker.cheese = "GOAT";
+                                Tracker.cost += Tracker.amt * 1.00m;
+                                break;
+
+                            case "3":
+                            case "queso":
+                            case "queso fresco":
+                            case "fresco":
+                                Tracker.cheese = "QUESO";
+                                Tracker.cost += Tracker.amt * 2.00m;
+                                break;
+
+                            default:
+                                CLError(answer);
+                                break;
+                        }
+
+                        if (Tracker.cheese.Length > 0)
+                            break;
+
+                    } while (trials > 0);
+                    if (trials < 1)
+                        return;
+
+                    //TOPPINGS
+                    trials = 3;
+                    do
+                    {
+                        Console.WriteLine("Pick your toppings.");
+                        Console.WriteLine("For multiple toppings, simply enter a stream of digits up to four:");
+                        Console.WriteLine("0. None");
+                        Console.WriteLine("1. Veggies/Fruit $0.50");
+                        Console.WriteLine("2. Pepperoni $1");
+                        Console.WriteLine("3. Chicken $1");
+                        Console.WriteLine("4. Meatballs $3\n");
+
+                        Console.Write("Order (enter digit/s): ");
+                        answer = Console.ReadLine();
+                        Console.Clear();
+                        Console.WriteLine("You are ordering from the " + results.SingleOrDefault().City + " store.\n");
+                        int i = 0;
+
+                        if (answer.Length < 1 || answer[0] == '0')
+                            break;
+
+                        while (i < answer.Length && i < toppings_arraylen)
+                        {
+                            if (Char.IsDigit(answer[i]))
+                            {
+                                switch (answer[i])
+                                {
+                                    case '1':
+                                        Tracker.toppings[i] = "VEGGIES/FRUIT";
+                                        Tracker.cost += Tracker.amt * 0.50m;
+                                        break;
+
+                                    case '2':
+                                        Tracker.toppings[i] = "PEPPERONI";
+                                        Tracker.cost += Tracker.amt * 1.00m;
+                                        break;
+
+                                    case '3':
+                                        Tracker.toppings[i] = "CHICKEN";
+                                        Tracker.cost += Tracker.amt * 1.00m;
+                                        break;
+
+                                    case '4':
+                                        Tracker.toppings[i] = "MEATBALLS";
+                                        Tracker.cost += Tracker.amt * 3.00m;
+                                        break;
+
+                                    default:
+                                        CLError(answer);
+                                        break;
+                                }
+
+                                if (Tracker.toppings[i].Length < 1)
+                                    break;
+
+                            }
+                            else
+                            {
+                                CLError(answer);
+                                break;
+                            }
+
+                            i++;
+                        }
+
+                        if (Tracker.toppings[toppings_arraylen - 1].Length > 0)
+                            break;
+
+                    } while (trials > 0);
+                    if (trials < 1)
+                        return;
+                }
+
+                if(pizzas < 100)
+                {
+                    //CALCULATE CURRENT COST & SAVE STATE OF VARS for PRINTOUT
+                    Console.WriteLine("Should I mark this order as complete?");
+                    Console.Write("Enter Y/N: ");
+                    answer = Console.ReadLine();
+                    Console.Clear();
+                    Console.WriteLine("You are ordering from the " + results.SingleOrDefault().City + " store.\n");
+                    switch (answer.ToLower())
+                    {
+                        case "y":
+                        case "yes":
+                        case "sure":
+                        case "ok":
+                        case "k":
+                        case "okay":
+                        case "alright":
+                        case "bet":
+                            Console.WriteLine("Okay");
+                            break;
+
+                        case "n":
+                        case "no":
+                        case "not yet":
+                        case "nope":
+                            Console.WriteLine("Wow, this must be some good pizza!");
+                            another = true;
+                            break;
+
+                        default:
+                            Console.WriteLine("I'm going to take that as a no.");
+                            break;
+                    }
+                }
+
+                total_cost += Tracker.cost;
+                Q.Add(Tracker);
+                if (total_cost > 250.00m)
+                {
+                    Console.Clear();
+                    Console.WriteLine("Orders can not exceed $250.");
+                    Console.WriteLine("Choose which items you would like to remove:\n");
+
+                    for(int i=0; i<Q.Count; i++)
+                    {
+                        if(Q[i].preset)
+                            Console.WriteLine(i + ": (" + Q[i].amt + ") " + Q[i].size + ", " + Q[i].crust + " " + Q[i].preset_order);
+                        else
+                        {
+                            Console.WriteLine(i + ": (" + Q[i].amt + ") " + Q[i].size + ", " + Q[i].crust + " " + Q[i].cheese + " on " + Q[i].sauce);
+                            Console.Write("Toppings: ");
+                            for (int j = 0; j < Q[i].toppings.Length; j++)
+                            {
+                                Console.Write(Q[i].toppings[j]);
+
+                                if (j < Q[i].toppings.Length - 1)
+                                    Console.Write(", ");
+                            }
+                            Console.WriteLine();
+                        }
+                        Console.WriteLine("$" + Tracker.cost + "\n");
+                    }
+                }
+
+            } while (another);
+
+
+            //PRINT EACH FROM THE QUEUE
+            Console.Clear();
+            Console.WriteLine("Order Confirmed\n");
+
+            for(int i=0; i<Q.Count; i++)
+            {
+                Tracker = Q[i];
+
+                if (Tracker.preset)
+                    Console.WriteLine("(" + Tracker.amt + ") " + Tracker.size + ", " + Tracker.crust + " " + Tracker.preset_order);
+                else
+                {
+                    Console.WriteLine("(" + Tracker.amt + ") " + Tracker.size + ", " + Tracker.crust + " " + Tracker.cheese + " on " + Tracker.sauce);
+                    Console.Write("Toppings: ");
+                    for (int j = 0; j < Tracker.toppings.Length; j++)
+                    {
+                        Console.Write(Tracker.toppings[j]);
+
+                        if (j < Tracker.toppings.Length - 1)
+                            Console.Write(", ");
+                    }
+                    Console.WriteLine();
+                }
+                Console.WriteLine("$" + Tracker.cost + "\n");
             }
+     
+            //CALCULATE OVERALL TOTAL
+            /*
+            //STORE AND PRINT
+            DB.Add(MyOrder);
+            DB.SaveChanges();
+
+            var inner = from ot in DB.Ordertype select ot.OrderId;
+            var outer = from o in DB.Orders where !inner.Contains(o.OrderId) select o;
+            ODetails.OrderId = outer.FirstOrDefault().OrderId;
+            ODetails.Preset = p_sequence;
+            ODetails.Custom = c_sequence;
+            DateTime date = DateTime.Now;
+            ODetails.Dt = date.ToString("MM/dd/yyyy");
+            ODetails.Tm = date.ToString("HH:mm");
+            */
+
+
+            /*
+             * 
+             *  
+             * SELECT * FROM ORDERS
+               WHERE ORDERS.OrderID NOT IN (SELECT ORDERTYPE.OrderID FROM ORDERTYPE
+                         GROUP BY ORDERTYPE.OrderID);
+
+             * where o.OrderId is not found in OT
+             * select o
+              var result = from o in DB.Orders
+                     join ot in DB.Ordertype
+                     on o.OrderId equals ot.OrderId
+                     where o.Username == Me.Username
+                     select new
+                     {
+                         ID = ot.OrderId,
+                         PRESET = ot.Preset,
+                         CUSTOM = ot.Custom,
+                         DATE = ot.Dt,
+                         TIME = ot.Tm
+                     };
+             */
+
+            //TAKE p_sequence and c_sequence and import to Ordertype obj
+
         }
 
         public void Session()
