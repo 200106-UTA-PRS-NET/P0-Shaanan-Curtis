@@ -112,7 +112,7 @@ namespace PizzaBox.Client
         static void Main()
         {
             string header1 = "Welcome to Pizza Box";
-            string header2 = "Please sign in to your account to get started.\nIf you don't have an account, sign up with us now!";
+            string header2 = "Please sign in to your account to get started.\nIf you don't have an account, sign up with us now and get 50% off your first purchase!";
             bool shown = false;
             while (!exit_proc)
             {

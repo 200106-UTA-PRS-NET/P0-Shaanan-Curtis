@@ -124,6 +124,12 @@ namespace PizzaBox.Domain.Models
             return Me;
         }
 
+        /// <summary>
+        /// - Special Access Login
+        /// -> logs into user account from admin session and includes additional functionality
+        /// </summary>
+        /// <param name="access_level"></param>
+        /// <returns></returns>
         public User Login(string access_level)
         {
             User Me = new User();

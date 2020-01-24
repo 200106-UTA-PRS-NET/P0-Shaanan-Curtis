@@ -38,6 +38,7 @@ namespace PizzaBox.Domain.Abstracts
             //int count = 0;
             var results = from s in DB.Store select s;
 
+            //***
             if(results.Count() == 0)
             {
                 bool flag = false;
@@ -220,12 +221,6 @@ namespace PizzaBox.Domain.Abstracts
             Console.WriteLine("Exit - Log out and exit application\n");
         }
 
-        /*
-        Crust - Thin, Thick
-        Size - small, medium, large
-        Toppings - None, Pepperoni, Chicken, Beef, Steak, Mushrooms, Banana Pepper, Jalapeno
-        Preset - Pepperoni, Cheese, Supreme, BBQ Chicken, Veggie, Meatball
-         */
         public void Menu()
         {
             Console.WriteLine("__________________________________________________________________________");
