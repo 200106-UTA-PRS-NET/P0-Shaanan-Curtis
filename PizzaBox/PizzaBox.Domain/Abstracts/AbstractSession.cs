@@ -121,6 +121,10 @@ namespace PizzaBox.Domain.Abstracts
 
     public class Customer : AbstractSession
     {
+        private static bool promo;
+
+        decimal sales_price = 0.00m;
+
         static void Info()
         {
             Console.WriteLine("Info - Display a list of available commands.");
@@ -318,6 +322,8 @@ namespace PizzaBox.Domain.Abstracts
 
             decimal total_cost = 0.00m;
             int pizzas = 0;
+            int preset_amt = 0;
+            int custom_amt = 0;
 
             string p_sequence = "";           //save sequence (holds total order for preset)
             string c_sequence = "";           //save sequence (holds total order for custom)
@@ -480,11 +486,11 @@ namespace PizzaBox.Domain.Abstracts
                             if (trials > 1)
                             {
                                 Console.Write("Orders limited to 100 pizzas at a time: ");
-                                if(100-pizzas > 0)
+                                if (100 - pizzas > 0)
                                 {
                                     Console.WriteLine(100 - pizzas + " remaining");
                                 }
-                          
+
                                 error = true;
                             }
                             else
@@ -495,9 +501,15 @@ namespace PizzaBox.Domain.Abstracts
                             }
                         }
                         else if (ispreset)
+                        {
+                            preset_amt += number;
                             p_sequence += answer;
+                        }
                         else
+                        {
+                            custom_amt += number;
                             c_sequence += answer;
+                        }
                             
                         if(!error)
                         {
@@ -1088,9 +1100,11 @@ namespace PizzaBox.Domain.Abstracts
 
                     if (total_cost == 0.00m)
                         another = true;
-            }
+                }
             } while (another);
 
+            if (promo)
+                sales_price = total_cost*0.50m;     //try not to hardcode this for next update (KeyValues<discounts,bools>)
 
             //PRINT EACH FROM THE QUEUE
             ComputeOrder(Tracker, Q, total_cost);
@@ -1117,6 +1131,16 @@ namespace PizzaBox.Domain.Abstracts
             ODetails.Dt = date.ToString("MM/dd/yyyy");
             ODetails.Tm = date.ToString("HH:mm");
             DB.Add(ODetails);
+            DB.SaveChanges();
+
+            Inventory Remainder = new Inventory();
+            var ret = from i in DB.Inventory where i.StoreId == MyOrder.StoreId select i;
+            if(ret.Count() > 0)
+            {
+                ret.SingleOrDefault().Preset -= preset_amt;
+                ret.SingleOrDefault().Custom -= custom_amt;
+            }
+
             DB.SaveChanges();
         }
 
@@ -1146,10 +1170,18 @@ namespace PizzaBox.Domain.Abstracts
                 }
                 Console.WriteLine("$" + Tracker.cost + "\n");
             }
-            Console.WriteLine("Total: $" + total_cost);
+
+            if(promo)
+            {
+                Console.WriteLine("Pre-discount Subtotal: $" + total_cost);
+                Console.WriteLine("Discount Total: $" + sales_price);
+            }
+            else
+                Console.WriteLine("Total: $" + total_cost);
         }
-        public void Session()
+        public void Session(bool sale)
         {
+            promo = sale;
             string answer;
             Console.Write("Enter Command (say Info for help): ");
             answer = Console.ReadLine();

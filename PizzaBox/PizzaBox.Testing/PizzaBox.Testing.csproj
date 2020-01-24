@@ -29,4 +29,10 @@
     <Folder Include="Specs\" />
   </ItemGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\PizzaBox.Client\PizzaBox.Client.csproj" />
+    <ProjectReference Include="..\PizzaBox.Domain\PizzaBox.Domain.csproj" />
+    <ProjectReference Include="..\PizzaBox.Storing\PizzaBox.Storing.csproj" />
+  </ItemGroup>
+
 </Project>

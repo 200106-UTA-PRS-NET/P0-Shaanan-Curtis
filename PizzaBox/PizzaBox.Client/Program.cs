@@ -18,7 +18,7 @@ namespace PizzaBox.Client
         static sbyte alive;
         public static bool exit_proc;
         private static bool priority = false;
-
+        public static bool sale = false;
         /// <summary>
         /// - Runs while user is signed out.
         /// </summary>
@@ -50,6 +50,7 @@ namespace PizzaBox.Client
                 case "signup":
                     CurrentUser = Assets.Signup();
                     alive = CurrentUser.SessionLive;
+                    sale = true;
                     break;
 
                 case "clear screen":
@@ -99,7 +100,7 @@ namespace PizzaBox.Client
                         PBCustomer.Exit();
                     }
                     else
-                        PBCustomer.Session();
+                        PBCustomer.Session(sale);
                     alive = PBCustomer.Me.SessionLive;
                     exit_proc = PBCustomer.Exits;
                     break;
@@ -111,7 +112,7 @@ namespace PizzaBox.Client
         static void Main()
         {
             string header1 = "Welcome to Pizza Box";
-            string header2 = "Please sign in to your account to get started.\nIf you don't have an account, sign up with us now and get 50% off your first order!";
+            string header2 = "Please sign in to your account to get started.\nIf you don't have an account, sign up with us now!";
             bool shown = false;
             while (!exit_proc)
             {
