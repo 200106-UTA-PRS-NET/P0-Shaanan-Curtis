@@ -93,6 +93,9 @@ namespace PizzaBox.Client
                     if (priority)
                     {
                         PBCustomer.Order();
+                        Console.Write("[PRESS ENTER TO CONTINUE]");
+                        Console.Write("\r");
+                        Console.ReadLine();
                         PBCustomer.Exit();
                     }
                     else
