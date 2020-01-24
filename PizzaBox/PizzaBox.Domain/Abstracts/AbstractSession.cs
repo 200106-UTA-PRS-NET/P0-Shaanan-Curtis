@@ -38,7 +38,7 @@ namespace PizzaBox.Domain.Abstracts
             //int count = 0;
             var results = from s in DB.Store select s;
 
-            if(results.Count() == 1)
+            if(results.Count() == 0)
             {
                 bool flag = false;
                 Console.WriteLine("We are still in construction. We should be finished soon.");
