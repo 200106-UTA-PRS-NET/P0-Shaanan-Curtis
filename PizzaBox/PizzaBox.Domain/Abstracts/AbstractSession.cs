@@ -38,6 +38,89 @@ namespace PizzaBox.Domain.Abstracts
             //int count = 0;
             var results = from s in DB.Store select s;
 
+            if(results.Count() == 1)
+            {
+                bool flag = false;
+                Console.WriteLine("We are still in construction. We should be finished soon.");
+                Console.WriteLine("Would you like to sign up for updates?");
+                Console.Write("Enter (Y/N): ");
+                string answer = Console.ReadLine();
+                bool updates = false;
+                Console.Clear();
+                switch(answer.ToLower())
+                {
+                    case "y":
+                    case "yes":
+                    case "sure":
+                    case "alright":
+                    case "ok":
+                    case "okay":
+                        updates = true;
+                        break;
+
+                    case "n":
+                    case "no":
+                    case "nah":
+                    case "nope":
+                    case "no thank you":
+                    case "no thanks":
+                    case "im good":
+                    case "i'm good":
+                    case "im ok":
+                    case "i'm ok":
+                    case "im okay":
+                    case "i'm okay":
+                    default:
+                        break;
+                }
+
+                if(updates)
+                {
+                    do
+                    {
+                        if (flag)
+                        {
+                            Console.WriteLine("*Make sure your email contains '@' and ends with an extension (e.g .com)");
+                            Console.WriteLine("If you would like to navigate back, just leave it blank or enter anything that could be interpreted as 'go back'");
+                            flag = false;
+                        }
+                        Console.Write("Enter Email: ");
+                        answer = Console.ReadLine();
+                        switch (answer.ToLower())
+                        {
+                            case "back":
+                            case "go back":
+                            case "that way":
+                            case "<<<-":
+                            case "<<-":
+                            case "<-":
+                            case "<<<":
+                            case "<<":
+                            case "<":
+                            case "-":
+                            case "..":
+                            case "/..":
+                            case "previous":
+                            case "":
+                                return 0;
+                        }
+
+                        if (!answer.Contains("@") || answer[answer.Length - 4] != '.')
+                        {
+                            Console.Clear();
+                            Console.WriteLine("Email Invalid Format");
+                            flag = true;
+                        }
+                        else
+                        {
+                            Console.WriteLine("You have successfully signed up for updates.");
+                            Console.WriteLine();
+                            return 0;
+                        }
+                    } while (answer.Length > 0);
+                }
+                return 0;
+            }
             foreach (Store s in results)
             {
                 if (s.City.Length < 9)
@@ -178,6 +261,11 @@ namespace PizzaBox.Domain.Abstracts
                              DATE = ot.Dt,
                              TIME = ot.Tm
                          };
+            if(result.Count() == 0)
+            {
+                Console.WriteLine("You have not ordered anything yet.\n");
+                return;
+            }
 
             foreach(var val in result)
             {
@@ -1175,6 +1263,7 @@ namespace PizzaBox.Domain.Abstracts
             {
                 Console.WriteLine("Pre-discount Subtotal: $" + total_cost);
                 Console.WriteLine("Discount Total: $" + sales_price);
+                promo = false;  //may be the wrong place, not much time to trace
             }
             else
                 Console.WriteLine("Total: $" + total_cost);
