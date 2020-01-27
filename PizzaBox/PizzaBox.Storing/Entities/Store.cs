@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 
-namespace PizzaBox.Storing.Repositories
+namespace PizzaBox.Storing.Entities
 {
     public partial class Store
     {

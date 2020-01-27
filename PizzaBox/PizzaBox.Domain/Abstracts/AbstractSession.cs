@@ -3,12 +3,19 @@ using System.Threading;
 using System.Linq;
 using System.Collections;
 using System.Collections.Generic;
-using PizzaBox.Storing.Repositories;
-using PizzaBox.Domain.Models;
+//using PizzaBox.Storing.Entities;
+using PizzaBox.Domain.Init;
 using Microsoft.EntityFrameworkCore;
 
+///decorator design dividing sessions between customers and employees
+///additional features throughout program
 namespace PizzaBox.Domain.Abstracts
 {
+    public abstract class AbstractSession
+    {
+
+    }
+    /*
     public abstract class AbstractSession
     {
         public static DbOptions Database = new DbOptions();
@@ -1682,4 +1689,5 @@ namespace PizzaBox.Domain.Abstracts
             return pass;
         }
     }
+    */
 }

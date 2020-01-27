@@ -1,10 +1,10 @@
 using System;
-using PizzaBox.Client;
+//using PizzaBox.Client;
 using PizzaBox.Domain;
 using PizzaBox.Domain.Abstracts;
-using PizzaBox.Domain.Models;
+using PizzaBox.Domain.Init;
 using PizzaBox.Storing;
-using PizzaBox.Storing.Repositories;
+using PizzaBox.Storing.Entities;
 
 using Xunit;
 

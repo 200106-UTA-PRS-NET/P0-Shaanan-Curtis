@@ -1,14 +1,16 @@
 ﻿using System;
 using System.IO;
-using PizzaBox.Storing.Repositories;
+using PizzaBox.Storing.Entities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
+using PizzaBox.Storing.Interface;
+using PizzaBox.Storing.Repositories;
 
-namespace PizzaBox.Domain
+namespace PizzaBox.Domain.Init
 {
     public sealed class DbOptions
     {
-        public readonly DbContextOptions<pizzaboxContext> options;
+        public static DbContextOptions<pizzaboxContext> options;
 
         public DbOptions()
         {
@@ -18,6 +20,12 @@ namespace PizzaBox.Domain
             var optionsBuilder = new DbContextOptionsBuilder<pizzaboxContext>();
             optionsBuilder.UseMySql(configuration.GetConnectionString("PizzaBoxDataSource"));
             options = optionsBuilder.Options;
+        }
+
+        public static IPizzaboxRepository CreatePizzaboxRepository()
+        {
+            var dbContext = new pizzaboxContext(options);
+            return new PizzaboxRepository(dbContext);
         }
     }
 }

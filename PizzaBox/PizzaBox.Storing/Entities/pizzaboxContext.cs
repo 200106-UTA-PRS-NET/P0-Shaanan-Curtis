@@ -2,7 +2,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata;
 
-namespace PizzaBox.Storing.Repositories
+namespace PizzaBox.Storing.Entities
 {
     public partial class pizzaboxContext : DbContext
     {
