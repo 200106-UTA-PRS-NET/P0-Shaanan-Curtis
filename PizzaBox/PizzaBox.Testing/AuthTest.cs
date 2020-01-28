@@ -1,7 +1,7 @@
 using System;
 //using PizzaBox.Client;
 using PizzaBox.Domain;
-using PizzaBox.Domain.Abstracts;
+using PizzaBox.Domain.Abstract;
 using PizzaBox.Domain.Init;
 using PizzaBox.Storing;
 using PizzaBox.Storing.Entities;

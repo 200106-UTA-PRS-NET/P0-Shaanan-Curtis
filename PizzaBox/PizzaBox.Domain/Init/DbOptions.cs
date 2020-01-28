@@ -12,7 +12,7 @@ namespace PizzaBox.Domain.Init
     {
         public static DbContextOptions<pizzaboxContext> options;
 
-        public DbOptions()
+        static DbOptions()
         {
             var configBuilder = new ConfigurationBuilder().SetBasePath(Directory.GetCurrentDirectory()).AddJsonFile("appsettings.json", optional: true, reloadOnChange: true);
             IConfigurationRoot configuration = configBuilder.Build();

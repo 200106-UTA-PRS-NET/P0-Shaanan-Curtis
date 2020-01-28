@@ -3,30 +3,33 @@ using System.Threading;
 using System.Linq;
 using System.Collections;
 using System.Collections.Generic;
-//using PizzaBox.Storing.Entities;
 using PizzaBox.Domain.Init;
-using Microsoft.EntityFrameworkCore;
+using PizzaBox.Storing.Entities;
+using PizzaBox.Storing.Interface;
+//using Microsoft.EntityFrameworkCore;
+
+//!!! = whenever you see this mark, code is complete but needs to be refined
 
 ///decorator design dividing sessions between customers and employees
 ///additional features throughout program
-namespace PizzaBox.Domain.Abstracts
+namespace PizzaBox.Domain.Abstract
 {
     public abstract class AbstractSession
     {
+        public User CurrentUser = new User();
+        internal int trials;
+        internal int toppings_arraylen = 4;
 
-    }
-    /*
-    public abstract class AbstractSession
-    {
-        public static DbOptions Database = new DbOptions();
-        public static pizzaboxContext DB = new pizzaboxContext(Database.options);
-        public User Me = new User();
-        internal int trials = 3;
+        #region Backing Fields
         internal bool exits = false;
+        #endregion
+
+        #region Properties
         public bool Exits
         { get { return exits; } }
+        #endregion
 
-        public const int toppings_arraylen = 4;
+        #region Structs
         public struct Order_tracker
         {
             public bool preset;
@@ -39,14 +42,15 @@ namespace PizzaBox.Domain.Abstracts
             public string[] toppings;
             public decimal cost;
         };
+        #endregion
 
         public int Locations()
         {
-            //int count = 0;
-            var results = from s in DB.Store select s;
+            using IPizzaboxRepository pizzaboxRepository = DbOptions.CreatePizzaboxRepository();
+            var results = pizzaboxRepository.GetAllStores();
 
             //***
-            if(results.Count() == 0)
+            if (results.Count() == 0)
             {
                 bool flag = false;
                 Console.WriteLine("We are still in construction. We should be finished soon.");
@@ -129,6 +133,7 @@ namespace PizzaBox.Domain.Abstracts
                 }
                 return 0;
             }
+
             foreach (Store s in results)
             {
                 if (s.City.Length < 9)
@@ -145,53 +150,35 @@ namespace PizzaBox.Domain.Abstracts
             }
             Console.WriteLine();
             return results.Count();
-        }
-
+        }   //!!! Marked for refinement
         public void Logout()
         {
+            using IPizzaboxRepository pizzaboxRepository = DbOptions.CreatePizzaboxRepository();
             Console.Write("Signing you out ");
 
-            #region loading animation
+            #region Loading Animation
+            Loading('.', 3, 2);
+            #endregion
 
-            for (int i = 0; i < 2; i++)
+            CurrentUser.SessionLive = 0;
+            pizzaboxRepository.UpdateUser(CurrentUser);
+        }
+
+        #region Utilities
+        internal static void Loading(char symbol, int len, int duration)
+        {
+            for (int y = 0; y < duration; y++)
             {
-                Loading('.', 3);
+                for (int x = 0; x < len; x++)
+                {
+                    Thread.Sleep(700);
+                    Console.Write(symbol + " ");
+                }
                 Console.SetCursorPosition(Console.CursorLeft - 6, Console.CursorTop);
                 Console.Write("      ");
                 Console.SetCursorPosition(Console.CursorLeft - 6, Console.CursorTop);
             }
-
-            #endregion
-
-            //Update CurrentUser's session state
-            var users = DB.User.First(u => u.Username == Me.Username);
-            users.SessionLive = Me.SessionLive = 0;
-            DB.SaveChanges();
         }
-
-        /// <summary>
-        /// - Displays loading animation
-        /// </summary>
-        /// <param name="symbol"></param>
-        /// <param name="len"></param>
-        static internal void Loading(char symbol, int len)
-        {
-            for (int i = 0; i < len; i++)
-            {
-                Thread.Sleep(696);
-                Console.Write(symbol + " ");
-            }
-        }
-
-        /// <summary>
-        /// - Exits application with message
-        /// </summary>
-        public void Exit()
-        {
-            Logout();
-            exits = true;
-        }
-
         public void CLError(string entry)
         {
             switch (trials)
@@ -208,15 +195,29 @@ namespace PizzaBox.Domain.Abstracts
 
             trials--;
         }
+        public void Exit()
+        {
+            Logout();
+            exits = true;
+        }
+        #endregion
+
+        public abstract void Info();
+        public abstract void History();
+        public abstract int Session();
     }
 
-    public class Customer : AbstractSession
+    public class CustomerSession : AbstractSession
     {
         private static bool promo;
+        private decimal sales_price = 0.00m;
 
-        decimal sales_price = 0.00m;
+        public CustomerSession(bool sale)
+        {
+            promo = sale;
+        }
 
-        static void Info()
+        public override void Info()
         {
             Console.WriteLine("Info - Display a list of available commands.");
             Console.WriteLine("Logout - Sign out of application");
@@ -227,83 +228,88 @@ namespace PizzaBox.Domain.Abstracts
             Console.WriteLine("Clear - Clear screen");
             Console.WriteLine("Exit - Log out and exit application\n");
         }
-
-        public void Menu()
+        public override void History()
         {
-            Console.WriteLine("__________________________________________________________________________");
-            Console.WriteLine("Preset");
-            Console.WriteLine("1. Vegan | Small $4 | Medium $8 | Large $12");
-            Console.WriteLine("2. Pepperoni | Small $5 | Medium $10 | Large $15");
-            Console.WriteLine("3. BBQ Chicken | Small $6 | Medium $12 | Large $18");
-            Console.WriteLine("4. Meatball | Small $7 | Medium $14 | Large $21");
-            Console.WriteLine("5. Supreme | Small $8 | Medium $16 | Large $24");
-            Console.WriteLine("6. Greek | Small $9 | Medium $18 | Large $27");
-            Console.WriteLine();
-            Console.WriteLine("Custom");
-            Console.WriteLine("Sizes | Small $3 | Medium $6 | Large $9");
-            Console.WriteLine("Sauces | Traditional $0.50 | BBQ $1 | Alfredo $1");
-            Console.WriteLine("Cheese | Regular $0.50 | Goat (Greek) $1 | Queso $2");
-            Console.WriteLine("Toppings | Veggies/Fruit $0.50 | Pepperoni $1 | Chicken $1 | Meatballs $3");
-            Console.WriteLine("__________________________________________________________________________");
-            Console.WriteLine();
-        }
-
-        public void History()
-        {
-            IDictionary<string, int> Map = new Dictionary<string, int>();
-            var result = from o in DB.Orders
-                         join ot in DB.Ordertype
-                         on o.OrderId equals ot.OrderId
-                         where o.Username == Me.Username
-                         select new
-                         {
-                             ID = ot.OrderId,
-                             PRESET = ot.Preset,
-                             CUSTOM = ot.Custom,
-                             DATE = ot.Dt,
-                             TIME = ot.Tm
-                         };
-            if(result.Count() == 0)
+            //IDictionary<string, int> Map = new Dictionary<string, int>();
+            using IPizzaboxRepository pizzaboxRepository = DbOptions.CreatePizzaboxRepository();
+            var results = pizzaboxRepository.GetOrdersBy(CurrentUser.Username, "user");
+            
+            if(results.Count() < 1)
             {
                 Console.WriteLine("You have not ordered anything yet.\n");
                 return;
             }
 
-            foreach(var val in result)
+            Orders[] O = new Orders[results.Count()];
+            Ordertype[] OT = new Ordertype[results.Count()];
+            int[] ids = new int[results.Count()];
+
+            #region Initialization of O, OT, and ids
+            int i;
+            for (i = 0; i < results.Count(); i++)
             {
-                Console.WriteLine("Order #" + val.ID.ToString().PadLeft(12 - val.ID.ToString().Length, '0'));
-                string D = val.DATE.Replace('.', '/');
-                string T = val.TIME.Replace('.', ':');
+                OT[i] = new Ordertype();
+                O[i] = new Orders();
+                ids[i] = new int();
+            }
+            #endregion
+
+            #region Map Orders results
+            i = 0;
+            foreach (var val in results)
+            {
+                O[i] = val;
+                ids[i] = val.OrderId;
+
+                #region NOTE:
+                ///NOTE: DataReader can not use result from Entity1 query while querying data in Entity2
+                #endregion
+            }
+
+            for (i = 0; i < results.Count(); i++)
+            {
+                OT[i] = pizzaboxRepository.GetOrdertypeById(ids[i]);
+            }
+            #endregion
+
+            #region Display Full List of Recent Orders
+            i = 0;
+            while(i < results.Count())
+            {
+                int j = 0, n = 0;
+                string nums, sequence;
+
+                ///DISPLAY ORDER# AND DATE/TIME
+                Console.WriteLine("Order #" + O[i].OrderId.ToString().PadLeft(12 - O[i].OrderId.ToString().Length, '0'));
+                string D = OT[i].Dt.Replace('.', '/');
+                string T = OT[i].Tm.Replace('.', ':');
                 Console.WriteLine(D + " " + T);
 
-                int i = 0, n = 0;
-                string nums, sequence;
-                //TRANSLATE PRESETS
+                ///PRESET TRANSLATION TO HUMAN-READABLE FORMAT
                 do
                 {
-                    //reset for next pizza under presets
+                    ///RESET TRANSLATED SEQUENCE AFTER EACH PRINT
                     nums = "";
                     sequence = "";
 
-                    if (val.PRESET.Length > 0 && val.PRESET[0] == '-')
-                        break;
-                    else if (val.PRESET.Length == 0)
+                    if ((OT[i].Preset.Length > 0 && OT[i].Preset[0] == '-') || OT[i].Preset.Length == 0)
                         break;
 
-                    // Worst O(3)
-                    while (i < val.PRESET.Length && Char.IsDigit(val.PRESET[i]))
+                    ///GET FULL DIGIT FROM ORIGINAL SEQUENCE UNTIL ISLETTER - Worst O(3)
+                    while (j < OT[i].Preset.Length && Char.IsDigit(OT[i].Preset[j]))
                     {
-                        nums += val.PRESET[i];
-                        i++;
+                        nums += OT[i].Preset[j];
+                        j++;
                     }
 
+                    //NUMS IS NOT A NUMBER? SKIP
                     if (!int.TryParse(nums, out n))
                         break;
 
-                    // Worst O(2)
-                    while (i < val.PRESET.Length && Char.IsLetter(val.PRESET[i]))
+                    ///GET FULL CHAR SEQUENCE FROM ORIGINAL UNTIL NEXT DIGIT/END - Worst O(2)
+                    while (j < OT[i].Preset.Length && Char.IsLetter(OT[i].Preset[j]))
                     {
-                        switch (val.PRESET[i])
+                        switch (OT[i].Preset[j])
                         {
                             case 'S':
                                 sequence += "Small Preset, ";
@@ -330,40 +336,39 @@ namespace PizzaBox.Domain.Abstracts
                                 break;
                         }
 
-                        i++;
+                        j++;
                     }
 
+                    ///PRINT AMOUNT AND ORDER IN READABLE FORMAT
                     Console.WriteLine(Convert.ToInt32(nums) + " " + sequence);
 
-                } while (i < val.PRESET.Length);
+                } while (j < OT[i].Preset.Length);
 
-                i = 0; n = 0;
-                //TRANSLATE CUSTOMS
+                ///CUSTOM TRANSLATION TO HUMAN-READABLE FORMAT
+                j = 0; n = 0;
                 do
                 {
-                    //reset for next pizza under presets
+                    ///RESET TRANSLATED SEQUENCE AFTER EACH PRINT
                     nums = "";
                     sequence = "";
 
-                    if (val.CUSTOM.Length > 0 && val.CUSTOM[0] == '-')
-                        break;
-                    else if (val.CUSTOM.Length == 0)
+                    if ((OT[i].Custom.Length > 0 && OT[i].Custom[0] == '-') || OT[i].Custom.Length == 0)
                         break;
 
-                    // Worst O(3)
-                    while (i < val.CUSTOM.Length && Char.IsDigit(val.CUSTOM[i]))
+                    ///GET FULL DIGIT FROM ORIGINAL SEQUENCE UNTIL ISLETTER - Worst O(3)
+                    while (j < OT[i].Custom.Length && Char.IsDigit(OT[i].Custom[j]))
                     {
-                        nums += val.CUSTOM[i];
-                        i++;
+                        nums += OT[i].Custom[j];
+                        j++;
                     }
 
                     if (!int.TryParse(nums, out n))
                         break;
 
-                    // Worst O(2)
-                    while (i < val.CUSTOM.Length && Char.IsLetter(val.CUSTOM[i]))
+                    ///GET FULL CHAR SEQUENCE FROM ORIGINAL UNTIL NEXT DIGIT/END - Worst O(2)
+                    while (j < OT[i].Custom.Length && Char.IsLetter(OT[i].Custom[j]))
                     {
-                        switch (val.CUSTOM[i])
+                        switch (OT[i].Custom[j])
                         {
                             case 'S':
                                 sequence += "Small Custom, ";
@@ -390,17 +395,107 @@ namespace PizzaBox.Domain.Abstracts
                                 break;
                         }
 
-                        i++;
+                        j++;
                     }
 
+                    ///PRINT AMOUNT AND ORDER IN READABLE FORMAT
                     Console.WriteLine(Convert.ToInt32(nums) + " " + sequence);
 
-                } while (i < val.CUSTOM.Length);
-                
+                } while (j < OT[i].Custom.Length);
+
                 Console.WriteLine();
+                i++;
             }
+            #endregion
         }
 
+        public override int Session()
+        {
+            string answer;
+            Console.Write("Enter Command (say Info for help): ");
+            answer = Console.ReadLine();
+            Console.Clear();
+            switch (answer.ToLower())
+            {
+                case "info":
+                case "help":
+                    Console.WriteLine("INFO");
+                    Info();
+                    break;
+
+                case "logout":
+                case "signout":
+                case "log out":
+                case "sign out":
+                    Logout();
+                    break;
+
+                case "locations":
+                case "location":
+                case "stores":
+                case "store":
+                    Console.WriteLine("STORE LOCATIONS");
+                    Locations();
+                    break;
+
+                case "history":
+                case "recent":
+                case "my orders":
+                case "orders":
+                    Console.WriteLine("RECENT ORDERS");
+                    History();
+                    break;
+
+                case "menu":
+                    Console.WriteLine("MENU");
+                    Menu();
+                    break;
+
+                case "order":
+                    Console.WriteLine("MAKE AN ORDER");
+                    //Order();
+                    break;
+
+                case "cls":
+                case "clear":
+                case "clearscreen":
+                case "clear screen":
+                    Console.Clear();
+                    break;
+
+                case "exit":
+                    Exit();
+                    break;
+
+                default:
+                    CLError(answer);
+                    break;
+            }
+            return 0;
+        }
+
+        public void Menu()
+        {
+            Console.WriteLine("__________________________________________________________________________");
+            Console.WriteLine("Preset");
+            Console.WriteLine("1. Vegan | Small $4 | Medium $8 | Large $12");
+            Console.WriteLine("2. Pepperoni | Small $5 | Medium $10 | Large $15");
+            Console.WriteLine("3. BBQ Chicken | Small $6 | Medium $12 | Large $18");
+            Console.WriteLine("4. Meatball | Small $7 | Medium $14 | Large $21");
+            Console.WriteLine("5. Supreme | Small $8 | Medium $16 | Large $24");
+            Console.WriteLine("6. Greek | Small $9 | Medium $18 | Large $27");
+            Console.WriteLine();
+            Console.WriteLine("Custom");
+            Console.WriteLine("Sizes | Small $3 | Medium $6 | Large $9");
+            Console.WriteLine("Sauces | Traditional $0.50 | BBQ $1 | Alfredo $1");
+            Console.WriteLine("Cheese | Regular $0.50 | Goat (Greek) $1 | Queso $2");
+            Console.WriteLine("Toppings | Veggies/Fruit $0.50 | Pepperoni $1 | Chicken $1 | Meatballs $3");
+            Console.WriteLine("__________________________________________________________________________");
+            Console.WriteLine();
+        }
+
+        //Order()
+        /*
         public void Order()
         {
             Orders MyOrder = new Orders();
@@ -408,7 +503,7 @@ namespace PizzaBox.Domain.Abstracts
             Order_tracker Tracker;
             List<Order_tracker>Q = new List<Order_tracker>();
 
-            MyOrder.Username = Me.Username;
+            MyOrder.Username = CurrentUser.Username;
 
             decimal total_cost = 0.00m;
             int pizzas = 0;
@@ -1233,7 +1328,9 @@ namespace PizzaBox.Domain.Abstracts
 
             DB.SaveChanges();
         }
-
+        */
+        //ComputeOrder()
+        /*
         public void ComputeOrder(Order_tracker Tracker, List<Order_tracker> Q, decimal total_cost)
         {
             Console.Clear();
@@ -1270,75 +1367,17 @@ namespace PizzaBox.Domain.Abstracts
             else
                 Console.WriteLine("Total: $" + total_cost);
         }
-        public void Session(bool sale)
-        {
-            promo = sale;
-            string answer;
-            Console.Write("Enter Command (say Info for help): ");
-            answer = Console.ReadLine();
-            Console.Clear();
-            switch (answer.ToLower())
-            {
-                case "info":
-                case "help":
-                    Console.WriteLine("INFO");
-                    Info();
-                    break;
-
-                case "logout":
-                case "signout":
-                case "log out":
-                case "sign out":
-                    Logout();
-                    break;
-
-                case "locations":
-                case "location":
-                case "stores":
-                case "store":
-                    Console.WriteLine("STORE LOCATIONS");
-                    Locations();
-                    break;
-
-                case "history":
-                case "recent":
-                case "my orders":
-                case "orders":
-                    Console.WriteLine("RECENT ORDERS");
-                    History();
-                    break;
-
-                case "menu":
-                    Console.WriteLine("MENU");
-                    Menu();
-                    break;
-
-                case "order":
-                    Console.WriteLine("MAKE AN ORDER");
-                    Order();
-                    break;
-
-                case "cls":
-                case "clear":
-                case "clearscreen":
-                case "clear screen":
-                    Console.Clear();
-                    break;
-
-                case "exit":
-                    Exit();
-                    break;
-
-                default:
-                    CLError(answer);
-                    break;
-            }
-        }
+        */
     }
 
+    //Employee Session
+    /*
     public class Employee : AbstractSession
     {
-        public void Info()
+        //override session
+        //override history
+        //override info
+        public override void Info()
         {
             Console.WriteLine("INFO");
             Console.WriteLine("Info - Display a list of available commands.");
@@ -1351,61 +1390,12 @@ namespace PizzaBox.Domain.Abstracts
             Console.WriteLine("Clear - Clear screen");
             Console.WriteLine("Exit - Log out and exit application\n");
         }
-
-        public void Inventory()
+        public override void History()
         {
-            //Query ORDER table for inventory
-            Console.WriteLine("INVENTORY");
-            int tried = trials = 3;
-            int id = 0;
-            do
-            {
-                Console.WriteLine("Please select your location:");
-                int count = Locations();
-                Console.Write("Store ID (enter digit): ");
-                string locationid = Console.ReadLine();
-                Console.Clear();
-                if (int.TryParse(locationid, out id))
-                {
-                    if (id < 1 || id > count)
-                    {
-                        if (trials > 1)
-                        {
-                            Console.WriteLine("Please enter a digit according to store IDs displayed below:");
-                            trials--;
-                        }
-                        else
-                        {
-                            Console.WriteLine("You have failed to identify your shop " + tried + " times.");
-                            Exit();
-                            return;
-                        }
-                    }
-                    else
-                        break;
-                }
-            } while (trials > 0);
 
-            var query = from i in DB.Inventory
-                        where i.StoreId == id
-                        select i;
-
-            if(query.Count() > 0)
-            {
-                Console.WriteLine("Store #" + id.ToString().PadLeft(12 - id.ToString().Length, '0'));
-                Console.WriteLine("Has enough ingredients for " + query.SingleOrDefault().Preset + " Presets");
-                Console.WriteLine("Has enough ingredients for " + query.SingleOrDefault().Custom + " Customs");
-            }
-            else
-                Console.WriteLine("Inventory is currently unavailable.");
-  
-            Console.WriteLine();
-        }
-
-        public void History()
-        {
             Console.WriteLine("STORE ORDERS");
-            IDictionary<string, int> Map = new Dictionary<string, int>();
+            //IDictionary<string, int> Map = new Dictionary<string, int>();
+
             var result = from o in DB.Orders
                          join ot in DB.Ordertype
                          on o.OrderId equals ot.OrderId
@@ -1550,47 +1540,7 @@ namespace PizzaBox.Domain.Abstracts
                 Console.WriteLine();
             }
         }
-
-        public void AddStore()
-        {
-            int trials = 3;
-            bool flag = false;
-            do
-            {
-                Console.WriteLine("STORE DETAILS");
-                if(flag)
-                    Console.WriteLine("*255 character limit");
-                Console.Write("Enter City: ");
-                string city = Console.ReadLine();
-                if (flag)
-                    Console.WriteLine("*2 character abbreviations only");
-                Console.Write("Enter State (e.g TX): ");
-                string state = Console.ReadLine();
-                if (flag)
-                    Console.WriteLine("*5 to 10 digit zip code");
-                Console.Write("Enter Zip: ");
-                string zip = Console.ReadLine();
-
-                if (city.Length > 255 || state.Length < 2 || state.Length > 2 || zip.Length < 5 || zip.Length > 10)
-                {
-                    if (trials == 1)
-                        Exit();
-
-                    Console.Clear();
-                    flag = true;
-                    trials--;
-                }
-                else
-                    break;
-
-            } while (trials > 0);
-
-            Console.WriteLine();
-            Console.WriteLine("Thank you for your request. Your DB Admin will get in touch with you shortly.\n");
-
-        }
-
-        public int Session()
+        public override int Session()
         {
             string answer;
 
@@ -1656,6 +1606,93 @@ namespace PizzaBox.Domain.Abstracts
             return 0;
         }
 
+        public void Inventory()
+        {
+            //Query ORDER table for inventory
+            Console.WriteLine("INVENTORY");
+            int tried = trials = 3;
+            int id = 0;
+            do
+            {
+                Console.WriteLine("Please select your location:");
+                int count = Locations();
+                Console.Write("Store ID (enter digit): ");
+                string locationid = Console.ReadLine();
+                Console.Clear();
+                if (int.TryParse(locationid, out id))
+                {
+                    if (id < 1 || id > count)
+                    {
+                        if (trials > 1)
+                        {
+                            Console.WriteLine("Please enter a digit according to store IDs displayed below:");
+                            trials--;
+                        }
+                        else
+                        {
+                            Console.WriteLine("You have failed to identify your shop " + tried + " times.");
+                            Exit();
+                            return;
+                        }
+                    }
+                    else
+                        break;
+                }
+            } while (trials > 0);
+
+            var query = from i in DB.Inventory
+                        where i.StoreId == id
+                        select i;
+
+            if(query.Count() > 0)
+            {
+                Console.WriteLine("Store #" + id.ToString().PadLeft(12 - id.ToString().Length, '0'));
+                Console.WriteLine("Has enough ingredients for " + query.SingleOrDefault().Preset + " Presets");
+                Console.WriteLine("Has enough ingredients for " + query.SingleOrDefault().Custom + " Customs");
+            }
+            else
+                Console.WriteLine("Inventory is currently unavailable.");
+  
+            Console.WriteLine();
+        }
+        public void AddStore()
+        {
+            int trials = 3;
+            bool flag = false;
+            do
+            {
+                Console.WriteLine("STORE DETAILS");
+                if(flag)
+                    Console.WriteLine("*255 character limit");
+                Console.Write("Enter City: ");
+                string city = Console.ReadLine();
+                if (flag)
+                    Console.WriteLine("*2 character abbreviations only");
+                Console.Write("Enter State (e.g TX): ");
+                string state = Console.ReadLine();
+                if (flag)
+                    Console.WriteLine("*5 to 10 digit zip code");
+                Console.Write("Enter Zip: ");
+                string zip = Console.ReadLine();
+
+                if (city.Length > 255 || state.Length < 2 || state.Length > 2 || zip.Length < 5 || zip.Length > 10)
+                {
+                    if (trials == 1)
+                        Exit();
+
+                    Console.Clear();
+                    flag = true;
+                    trials--;
+                }
+                else
+                    break;
+
+            } while (trials > 0);
+
+            Console.WriteLine();
+            Console.WriteLine("Thank you for your request. Your DB Admin will get in touch with you shortly.\n");
+
+        }
         bool Authenticator()
         {
             Console.WriteLine("As an employee, you agree to be held liable for any misuse of the following information:");

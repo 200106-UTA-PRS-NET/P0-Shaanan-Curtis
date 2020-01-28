@@ -18,7 +18,11 @@ namespace PizzaBox.Storing.Interface
 
         void UpdateInventory(int id, int preset, int custom, string type);  //after order confirmed
 
-        IEnumerable GetOrders(string search, string type = "user");
+        IEnumerable<Orders> GetOrdersBy(string search, string type = "user");
+
+        Ordertype GetOrdertypeById(int id);
+       
+        //IEnumerable GetOrders(string search, string type = "user");
 
         void AddOrder(Orders orders, Ordertype ordertype, string preset, string custom);  //after order confirmed
 
