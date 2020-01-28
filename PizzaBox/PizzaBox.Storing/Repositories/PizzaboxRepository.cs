@@ -112,14 +112,14 @@ namespace PizzaBox.Storing.Repositories
                 int id = 0;
                 if (!int.TryParse(search, out id))
                 {
-                    //logger.Warn($"ID ({search}) could not be read.");
+                    ///logger.Warn($"ID ({search}) could not be read.");
                     return null;
                 }
                 else
                 {
                     if (id < 1)
                     {
-                        //logger.Warn($"Invalid ID ({id}).");
+                        ///logger.Warn($"Invalid ID ({id}).");
                         return null;
                     }
                 }
@@ -133,119 +133,17 @@ namespace PizzaBox.Storing.Repositories
             return orders;
         }
 
+        public IEnumerable<Ordertype> GetAllOrdertypes()
+        {
+            var result = from ot in _dbContext.Ordertype select ot;
+            return result;
+        }
+
         public Ordertype GetOrdertypeById(int id)
         {
-            var query = from ot in _dbContext.Ordertype where ot.OrderId == id select ot;
+            IQueryable<Ordertype> query = from ot in _dbContext.Ordertype where ot.OrderId == id select ot;
             return query.SingleOrDefault();
         }
-        /*
-        public IEnumerable<Ordertype> GetOrdertypeBy(string search, string type="user")
-        {
-            IEnumerable<Ordertype> ordertypes;
-            IEnumerable<Orders> orders;
-            List<Ordertype> ot = new List<Ordertype>();
-
-            if (type.ToLower() == "all")
-            {
-                ordertypes = _dbContext.Ordertype;
-                return ordertypes;
-            }
-            else if (type.ToLower() != "store" && type.ToLower() != "user")
-                type = "user";
-
-            orders = GetOrdersBy(search, type);
-     
-            foreach (var val in orders)
-            {
-                ot.Add(ordert_dbContext.Ordertype.Find(val.OrderId));
-            }
-            ordertypes = (IEnumerable<Ordertype>)ot;
-            ot.Clear();
-            
-            return ordertypes;
-        }
-        */
-        /*
-        public IEnumerable GetOrders(string search, string type = "user")
-        {
-            //Global
-            if (type.ToLower() == "all")
-            {
-                var a_orders =  from o in _dbContext.Orders
-                                join ot in _dbContext.Ordertype
-                                on o.OrderId equals ot.OrderId
-                                select new
-                                {
-                                    ID = o.OrderId,
-                                    STOREID = o.StoreId,
-                                    USER = o.Username,
-                                    PRESET = ot.Preset,
-                                    CUSTOM = ot.Custom,
-                                    DATE = ot.Dt,
-                                    TIME = ot.Tm
-                                };
-
-                return a_orders;
-            }
-            //By Store
-            else if(type.ToLower() == "store")
-            {
-                int id = 0;
-                if (!int.TryParse(search, out id))
-                {
-                    //logger.Warn($"ID ({search}) could not be read.");
-                    id = 1;
-                }
-                else
-                {
-                    if (id < 1)
-                    {
-                        //logger.Warn($"Invalid ID ({id}).");
-                        id = 1;
-                    }
-                }
-
-                //logger.Info("Getting orders.");
-                var s_orders = from o in _dbContext.Orders
-                               join ot in _dbContext.Ordertype
-                               on o.OrderId equals ot.OrderId
-                               where o.StoreId == id
-                               select new
-                               {
-                                   ID = o.OrderId,
-                                   STOREID = o.StoreId,
-                                   USER = o.Username,
-                                   PRESET = ot.Preset,
-                                   CUSTOM = ot.Custom,
-                                   DATE = ot.Dt,
-                                   TIME = ot.Tm
-                               };
-                return s_orders;
-            }
-            //By User
-            else if (type.ToLower() != "user")
-            {
-                //logger.Warn($"Invalid type '{type}' specified: Default to user.");
-                type = "user";
-            }
-
-            //logger.Info("Getting orders.");
-            var u_orders = from o in _dbContext.Orders
-                           join ot in _dbContext.Ordertype
-                           on o.OrderId equals ot.OrderId
-                           where o.Username == search
-                           select new
-                           {
-                               ID = ot.OrderId,
-                               STOREID = o.StoreId,
-                               PRESET = ot.Preset,
-                               CUSTOM = ot.Custom,
-                               DATE = ot.Dt,
-                               TIME = ot.Tm
-                           };
-            return u_orders;
-        }
-        */
 
         public void AddOrder(Orders orders, Ordertype ordertype, string preset, string custom)
         {

@@ -75,63 +75,6 @@ namespace PizzaBox.Client.Assets
             } while (trials > 0);
 
             return Me;
-
-            /*
-                if (DB.User.Where(u => u.Username.Contains(Me.Username)).Count() > 0 && DB.User.Where(p => p.Pass.Contains(Me.Pass) && p.Username.Contains(Me.Username)).Count() > 0)
-                {
-                    
-                    var result = from u in DB.User where u.Username == Me.Username select u;
-                    if (result.Count() < 1)
-                    {
-                        Console.Clear();
-                        Error("Authentication");
-                        continue;
-                    }
-                    else
-                    {
-                        var result2 = from u in DB.User where u.Pass == Me.Pass select u;
-                        if (result2.Count() < 1)
-                        {
-                            Console.Clear();
-                            Error("Authentication");
-                            continue;
-                        }
-                    }
-
-                    Me.FullName = result.SingleOrDefault().FullName;
-                    Me.SessionLive = result.SingleOrDefault().SessionLive;
-                    
-                    bool success = false;
-                    switch (Me.SessionLive)
-                    {
-                        case 1:
-                        //Bug in reading Me.SessionLive (database updated appropriately, not being transferred)
-                        
-                        //Error("Session");
-                        //break;
-                        
-                        case 0:
-                            Console.WriteLine("Login successful\n");
-                            result.Single().SessionLive = 1;
-                            Me.SessionLive = 1;
-                            DB.SaveChanges();
-                            success = true;
-                            break;
-                    }
-
-                    if (success)
-                        break;
-                }
-                else
-                {
-                    Console.Clear();
-                    Error("Authentication");
-                }
-
-            } while (trials > 0);
-            
-            return Me;
-            */
         }
         internal static User Login(string access_level, string uname)
         {

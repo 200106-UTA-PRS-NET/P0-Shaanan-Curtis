@@ -20,6 +20,8 @@ namespace PizzaBox.Storing.Interface
 
         IEnumerable<Orders> GetOrdersBy(string search, string type = "user");
 
+        IEnumerable<Ordertype> GetAllOrdertypes();
+
         Ordertype GetOrdertypeById(int id);
        
         //IEnumerable GetOrders(string search, string type = "user");

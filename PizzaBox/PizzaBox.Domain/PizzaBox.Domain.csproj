@@ -24,8 +24,4 @@
     <ProjectReference Include="..\PizzaBox.Storing\PizzaBox.Storing.csproj" />
   </ItemGroup>
 
-  <ItemGroup>
-    <Folder Include="Classes\" />
-  </ItemGroup>
-
 </Project>

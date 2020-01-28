@@ -1,6 +1,6 @@
 ﻿using PizzaBox.Client.Assets;
 using PizzaBox.Domain.Init;
-using PizzaBox.Domain.Abstract;
+using PizzaBox.Domain.Classes;
 using PizzaBox.Storing.Entities;
 using PizzaBox.Storing.Interface;
 using System;
@@ -22,9 +22,9 @@ namespace PizzaBox.Client
             Console.WriteLine("Signed in as " + CurrentUser.FullName);
             switch (CurrentUser.Username)
             {
-                /*
+                
                 case "admin":
-                    Employee PBAssociate = new Employee();
+                    EmployeeSession PBAssociate = new EmployeeSession();
                     PBAssociate.CurrentUser = CurrentUser;
                     if (PBAssociate.Session() == 1)
                     {
@@ -35,13 +35,13 @@ namespace PizzaBox.Client
                     alive = PBAssociate.CurrentUser.SessionLive;
                     exit_proc = PBAssociate.Exits;
                     break;
-                */
+                
                 default:
                     CustomerSession PBCustomer = new CustomerSession(sale);
                     PBCustomer.CurrentUser = CurrentUser;
                     if (priority)
                     {
-                        //PBCustomer.Order();
+                        PBCustomer.Order();
                         Console.Write("[PRESS ENTER TO CONTINUE]");
                         Console.Write("\r");
                         Console.ReadLine();
@@ -80,7 +80,11 @@ namespace PizzaBox.Client
                     }
                     else
                     {
-                        CurrentUser = Run.Login("sa-admin", "Tommy");
+                        Console.WriteLine("Who are you signing in for?");
+                        Console.Write("Enter name here: ");
+                        string answer = Console.ReadLine();
+                        Console.Clear();
+                        CurrentUser = Run.Login("sa-admin", answer);
                         alive = CurrentUser.SessionLive;
                     }
 
@@ -96,7 +100,7 @@ namespace PizzaBox.Client
                         clearin = true;
                     }
                     if (Session() == 1)
-                    priority = true;
+                        priority = true;
                 }
                 Console.Clear();
             }
