@@ -22,7 +22,6 @@ namespace PizzaBox.Client
             Console.WriteLine("Signed in as " + CurrentUser.FullName);
             switch (CurrentUser.Username)
             {
-                
                 case "admin":
                     EmployeeSession PBAssociate = new EmployeeSession();
                     PBAssociate.CurrentUser = CurrentUser;
@@ -56,7 +55,6 @@ namespace PizzaBox.Client
 
             return 0;
         }
-        
         static void UI(IPizzaboxRepository pizzaboxRepository)
         {
             string header1 = "Welcome to Pizza Box";
@@ -111,6 +109,7 @@ namespace PizzaBox.Client
             ///DbOptions options = new DbOptions();    //options needs to be initialized in constructor (without static)
             using IPizzaboxRepository pizzaboxRepository = DbOptions.CreatePizzaboxRepository();
             UI(pizzaboxRepository);
+            pizzaboxRepository.Dispose();
         }
     }
 }

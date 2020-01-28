@@ -8,7 +8,7 @@ using PizzaBox.Storing.Interface;
 
 namespace PizzaBox.Client.Assets
 {
-    internal class Run
+    public class Run
     {
         internal static int trials;
         internal static void Info()
@@ -20,7 +20,7 @@ namespace PizzaBox.Client.Assets
             Console.WriteLine("Clear - Clear screen.");
             Console.WriteLine("Exit - You'll be back.\n");
         }
-        internal static User Login()
+        public static User Login()
         {
             using IPizzaboxRepository pizzaboxRepository = DbOptions.CreatePizzaboxRepository();
             User Me = new User();

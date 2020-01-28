@@ -9,42 +9,27 @@ namespace PizzaBox.Storing.Interface
 {
     public interface IPizzaboxRepository : IDisposable
     {
-        //INENTORY
-        IEnumerable<Inventory> GetInventoryByType(string type = "preset", int search = 0);  //for inventory method
+        IEnumerable<Inventory> GetInventoryByType(string type = "preset", int search = 0); 
 
-        Inventory GetInventoryByStore(int storeid); //general
+        Inventory GetInventoryByStore(int storeid); 
 
-        int AddInventory(Inventory inventory); //after addstore method
+        int AddInventory(Inventory inventory); 
 
-        void UpdateInventory(int id, int preset, int custom, string type);  //after order confirmed
+        void UpdateInventory(int id, int preset, int custom, string type);  
 
         IEnumerable<Orders> GetOrdersBy(string search, string type = "user");
 
         IEnumerable<Ordertype> GetAllOrdertypes();
 
         Ordertype GetOrdertypeById(int id);
-       
-        //IEnumerable GetOrders(string search, string type = "user");
 
-        void AddOrder(Orders orders, Ordertype ordertype, string preset, string custom);  //after order confirmed
+        void AddOrder(Orders orders, Ordertype ordertype, string preset, string custom); 
 
-        //void UpdateOrders(Orders orders);   //if username change available in the future
+        IEnumerable<Store> GetAllStores();  
 
-        //IEnumerable<Ordertype> GetAllOrdertype(string search = null); 
+        Store GetStoreById(int id); 
 
-        //Ordertype GetOrdertypeById(int id);
-
-        //void AddOrdertype(Ordertype ordertype);
-
-        //void UpdateOrdertype(Ordertype ordertype);  //if username change available in the future
-
-        IEnumerable<Store> GetAllStores();   //location method
-
-        Store GetStoreById(int id); //general
-
-        void AddStore(Store store); //addstore method
-
-        //void UpdateStore(Store store);    ///currently unnecessary
+        void AddStore(Store store); 
 
         IQueryable GetUsersByStoreId(int id);
 
@@ -52,7 +37,7 @@ namespace PizzaBox.Storing.Interface
 
         User UserAuthentication(string uname, string pass);
 
-        void AddUser(User user);    //sign up
+        void AddUser(User user);   
 
         void UpdateUser(User user);
 
